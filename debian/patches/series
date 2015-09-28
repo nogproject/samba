@@ -17,3 +17,4 @@ Fix-privacy-breach-on-google.com.patch
 decrease-min-ldb-version.patch
 backupkey.patch
 fix_pam_smbpass.patch
+disable-socketwrapper.diff
