@@ -1518,6 +1518,219 @@ done:
 }
 
 /*
+  test SMB2 mkdir with OPEN_IF on the same name twice.
+  Must use 2 connections to hit the race.
+*/
+
+static bool test_mkdir_dup(struct torture_context *tctx,
+				struct smb2_tree *tree)
+{
+	const char *fname = "mkdir_dup";
+	NTSTATUS status;
+	bool ret = true;
+	union smb_open io;
+	struct smb2_tree **trees;
+	struct smb2_request **requests;
+	union smb_open *ios;
+	int i, num_files = 2;
+	int num_ok = 0;
+	int num_created = 0;
+	int num_existed = 0;
+
+	torture_comment(tctx,
+		"Testing SMB2 Create Directory with multiple connections\n");
+	trees = talloc_array(tctx, struct smb2_tree *, num_files);
+	requests = talloc_array(tctx, struct smb2_request *, num_files);
+	ios = talloc_array(tctx, union smb_open, num_files);
+	if ((tctx->ev == NULL) || (trees == NULL) || (requests == NULL) ||
+	    (ios == NULL)) {
+		torture_fail(tctx, ("talloc failed\n"));
+		ret = false;
+		goto done;
+	}
+
+	tree->session->transport->options.request_timeout = 60;
+
+	for (i=0; i<num_files; i++) {
+		if (!torture_smb2_connection(tctx, &(trees[i]))) {
+			torture_fail(tctx,
+				talloc_asprintf(tctx,
+					"Could not open %d'th connection\n", i));
+			ret = false;
+			goto done;
+		}
+		trees[i]->session->transport->options.request_timeout = 60;
+	}
+
+	/* cleanup */
+	smb2_util_unlink(tree, fname);
+	smb2_util_rmdir(tree, fname);
+
+	/*
+	  base ntcreatex parms
+	*/
+	ZERO_STRUCT(io.smb2);
+	io.generic.level = RAW_OPEN_SMB2;
+	io.smb2.in.desired_access = SEC_RIGHTS_FILE_ALL;
+	io.smb2.in.alloc_size = 0;
+	io.smb2.in.file_attributes = FILE_ATTRIBUTE_NORMAL;
+	io.smb2.in.share_access = NTCREATEX_SHARE_ACCESS_READ|
+		NTCREATEX_SHARE_ACCESS_WRITE|
+		NTCREATEX_SHARE_ACCESS_DELETE;
+	io.smb2.in.create_disposition = NTCREATEX_DISP_OPEN_IF;
+	io.smb2.in.create_options = NTCREATEX_OPTIONS_DIRECTORY;
+	io.smb2.in.impersonation_level = SMB2_IMPERSONATION_ANONYMOUS;
+	io.smb2.in.security_flags = 0;
+	io.smb2.in.fname = fname;
+	io.smb2.in.create_flags = 0;
+
+	for (i=0; i<num_files; i++) {
+		ios[i] = io;
+		requests[i] = smb2_create_send(trees[i], &(ios[i].smb2));
+		if (requests[i] == NULL) {
+			torture_fail(tctx,
+				talloc_asprintf(tctx,
+				"could not send %d'th request\n", i));
+			ret = false;
+			goto done;
+		}
+	}
+
+	torture_comment(tctx, "waiting for replies\n");
+	while (1) {
+		bool unreplied = false;
+		for (i=0; i<num_files; i++) {
+			if (requests[i] == NULL) {
+				continue;
+			}
+			if (requests[i]->state < SMB2_REQUEST_DONE) {
+				unreplied = true;
+				break;
+			}
+			status = smb2_create_recv(requests[i], tctx,
+						  &(ios[i].smb2));
+
+			if (NT_STATUS_IS_OK(status)) {
+				num_ok += 1;
+
+				if (ios[i].smb2.out.create_action ==
+						NTCREATEX_ACTION_CREATED) {
+					num_created++;
+				}
+				if (ios[i].smb2.out.create_action ==
+						NTCREATEX_ACTION_EXISTED) {
+					num_existed++;
+				}
+			} else {
+				torture_fail(tctx,
+					talloc_asprintf(tctx,
+					"File %d returned status %s\n", i,
+					nt_errstr(status)));
+			}
+
+
+			requests[i] = NULL;
+		}
+		if (!unreplied) {
+			break;
+		}
+
+		if (tevent_loop_once(tctx->ev) != 0) {
+			torture_fail(tctx, "tevent_loop_once failed\n");
+			ret = false;
+			goto done;
+		}
+	}
+
+	if (num_ok != 2) {
+		torture_fail(tctx,
+			talloc_asprintf(tctx,
+			"num_ok == %d\n", num_ok));
+		ret = false;
+	}
+	if (num_created != 1) {
+		torture_fail(tctx,
+			talloc_asprintf(tctx,
+			"num_created == %d\n", num_created));
+		ret = false;
+	}
+	if (num_existed != 1) {
+		torture_fail(tctx,
+			talloc_asprintf(tctx,
+			"num_existed == %d\n", num_existed));
+		ret = false;
+	}
+done:
+	smb2_deltree(tree, fname);
+
+	return ret;
+}
+
+/*
+  test directory creation with an initial allocation size > 0
+*/
+static bool test_dir_alloc_size(struct torture_context *tctx,
+				struct smb2_tree *tree)
+{
+	bool ret = true;
+	const char *dname = DNAME "\\torture_alloc_size.dir";
+	NTSTATUS status;
+	struct smb2_create c;
+	struct smb2_handle h1 = {{0}}, h2;
+
+	torture_comment(tctx, "Checking initial allocation size on directories\n");
+
+	smb2_deltree(tree, dname);
+
+	status = torture_smb2_testdir(tree, DNAME, &h1);
+	torture_assert_ntstatus_ok_goto(tctx, status, ret, done, "torture_smb2_testdir failed");
+
+	ZERO_STRUCT(c);
+	c.in.create_disposition = NTCREATEX_DISP_CREATE;
+	c.in.desired_access = SEC_FLAG_MAXIMUM_ALLOWED;
+	c.in.file_attributes = FILE_ATTRIBUTE_DIRECTORY;
+	c.in.share_access = NTCREATEX_SHARE_ACCESS_NONE;
+	c.in.create_options = NTCREATEX_OPTIONS_DIRECTORY;
+	c.in.fname = dname;
+	/*
+	 * An insanely large value so we can check the value is
+	 * ignored: Samba either returns 0 (current behaviour), or,
+	 * once vfswrap_get_alloc_size() is fixed to allow retrieving
+	 * the allocated size for directories, returns
+	 * smb_roundup(..., stat.st_size) which would be 1 MB by
+	 * default.
+	 *
+	 * Windows returns 0 for emtpy directories, once directories
+	 * have a few entries it starts replying with values > 0.
+	 */
+	c.in.alloc_size = 1024*1024*1024;
+
+	status = smb2_create(tree, tctx, &c);
+	h2 = c.out.file.handle;
+	torture_assert_ntstatus_ok_goto(tctx, status, ret, done,
+					"dir create with initial alloc size failed");
+
+	smb2_util_close(tree, h2);
+
+	torture_comment(tctx, "Got directory alloc size: %ju\n", (uintmax_t)c.out.alloc_size);
+
+	/*
+	 * See above for the rational for this test
+	 */
+	if (c.out.alloc_size > 1024*1024) {
+		torture_fail_goto(tctx, done, talloc_asprintf(tctx, "bad alloc size: %ju",
+							      (uintmax_t)c.out.alloc_size));
+	}
+
+done:
+	if (!smb2_util_handle_empty(h1)) {
+		smb2_util_close(tree, h1);
+	}
+	smb2_deltree(tree, DNAME);
+	return ret;
+}
+
+/*
    basic testing of SMB2 read
 */
 struct torture_suite *torture_smb2_create_init(void)
@@ -1535,6 +1748,8 @@ struct torture_suite *torture_smb2_create_init(void)
 	torture_suite_add_1smb2_test(suite, "aclfile", test_create_acl_file);
 	torture_suite_add_1smb2_test(suite, "acldir", test_create_acl_dir);
 	torture_suite_add_1smb2_test(suite, "nulldacl", test_create_null_dacl);
+	torture_suite_add_1smb2_test(suite, "mkdir-dup", test_mkdir_dup);
+	torture_suite_add_1smb2_test(suite, "dir-alloc-size", test_dir_alloc_size);
 
 	suite->description = talloc_strdup(suite, "SMB2-CREATE tests");
 

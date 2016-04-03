@@ -550,6 +550,7 @@ sub provision_raw_prepare($$$$$$$$$$)
 	$ctx->{smb_conf_extra_options} = "";
 
 	my @provision_options = ();
+	push (@provision_options, "KRB5_CONFIG=\"$ctx->{krb5_config}\"");
 	push (@provision_options, "NSS_WRAPPER_PASSWD=\"$ctx->{nsswrap_passwd}\"");
 	push (@provision_options, "NSS_WRAPPER_GROUP=\"$ctx->{nsswrap_group}\"");
 	push (@provision_options, "NSS_WRAPPER_HOSTS=\"$ctx->{nsswrap_hosts}\"");
@@ -814,6 +815,9 @@ sub provision($$$$$$$$$)
 	lanman auth = yes
 	allow nt4 crypto = yes
 
+	# fruit:copyfile is a global option
+	fruit:copyfile = yes
+
 	$extra_smbconf_options
 
 [tmp]
@@ -884,7 +888,8 @@ sub provision($$$$$$$$$)
 
 [vfs_fruit]
 	path = $ctx->{share}
-	vfs objects = catia fruit streams_xattr
+	vfs objects = catia fruit streams_xattr acl_xattr
+	ea support = yes
 	fruit:ressource = file
 	fruit:metadata = netatalk
 	fruit:locking = netatalk
@@ -1639,7 +1644,6 @@ sub provision_chgdcpass($$)
 	print "PROVISIONING CHGDCPASS...";
 	my $extra_provision_options = undef;
 	push (@{$extra_provision_options}, "--dns-backend=BIND9_DLZ");
-	my $extra_conf_options = "server services = +winbind -winbindd";
 	my $ret = $self->provision($prefix,
 				   "domain controller",
 				   "chgdcpass",
@@ -1647,8 +1651,7 @@ sub provision_chgdcpass($$)
 				   "chgdcpassword.samba.example.com",
 				   "2008",
 				   "chgDCpass1",
-				   undef, $extra_conf_options, "",
-				   $extra_provision_options);
+				   undef, "", "", $extra_provision_options);
 
 	return undef unless(defined $ret);
 	unless($self->add_wins_config("$prefix/private")) {
@@ -1658,8 +1661,7 @@ sub provision_chgdcpass($$)
 	
 	# Remove secrets.tdb from this environment to test that we
 	# still start up on systems without the new matching
-	# secrets.tdb records.  For this reason we don't run winbindd
-	# in this environment
+	# secrets.tdb records.  
 	unless (unlink("$ret->{PRIVATEDIR}/secrets.tdb") || unlink("$ret->{PRIVATEDIR}/secrets.ntdb")) {
 		warn("Unable to remove $ret->{PRIVATEDIR}/secrets.tdb added during provision");
 		return undef;
@@ -1741,8 +1743,11 @@ sub getlog_env($$)
 sub check_env($$)
 {
 	my ($self, $envvars) = @_;
+	my $samba_pid = $envvars->{SAMBA_PID};
 
-	my $childpid = Samba::cleanup_child($envvars->{SAMBA_PID}, "samba");
+	return 1 if $samba_pid == -1;
+
+	my $childpid = Samba::cleanup_child($samba_pid, "samba");
 
 	return ($childpid == 0);
 }
@@ -1811,6 +1816,8 @@ sub setup_env($$$)
 		}
 		return $target3->setup_admember_rfc2307("$path/s3member_rfc2307",
 							$self->{vars}->{dc}, 34);
+	} elsif ($envname eq "none") {
+		return $self->setup_none("$path/none");
 	} else {
 		return "UNKNOWN";
 	}
@@ -2124,6 +2131,16 @@ sub setup_plugin_s4_dc($$)
 	
 	$self->{vars}->{plugin_s4_dc} = $env;
 	return $env;
+}
+
+sub setup_none($$)
+{
+	my ($self, $path) = @_;
+
+	my $ret = {
+		KRB5_CONFIG => abs_path($path) . "/no_krb5.conf",
+		SAMBA_PID => -1,
+	}
 }
 
 1;

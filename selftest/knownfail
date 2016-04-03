@@ -16,6 +16,8 @@
 ^samba3.smbtorture_s3.plain\(dc\).UID-REGRESSION-TEST # Fails against the s4 ntvfs server
 ^samba3.smbtorture_s3.plain\(dc\).SHORTNAME-TEST # Fails against the s4 ntvfs server
 ^samba3.smbtorture_s3.plain\(dc\).POSIX-APPEND # Fails against the s4 ntvfs server
+^samba3.smbtorture_s3.plain\(ad_dc_ntvfs\).POSIX-SYMLINK-ACL # Fails against the s4 ntvfs server
+^samba3.smbtorture_s3.plain\(ad_dc_ntvfs\).POSIX-SYMLINK-EA # Fails against the s4 ntvfs server
 ^samba3.smbtorture_s3.plain\(dc\).NTTRANS-FSCTL # Fails against the s4 ntvfs server
 ^samba3.smbtorture_s3.plain\(dc\).SMB2-NEGPROT # Fails against the s4 ntvfs server
 ^samba3.smbtorture_s3.plain\(dc\).BAD-NBT-SESSION # Fails against the s4 ntvfs server
@@ -128,6 +130,7 @@
 # some operations don't work over the CIFS NTVFS backend yet (eg. root_fid)
 ^samba4.ntvfs.cifs.*.base.createx_sharemodes_dir
 ^samba4.raw.lock.*.async # bug 6960
+^samba4.raw.open.ntcreatex_supersede
 ^samba4.smb2.lock.*.multiple-unlock # bug 6959
 ^samba4.raw.sfileinfo.*.end-of-file\(.*\)$ # bug 6962
 ^samba4.raw.oplock.*.batch22 # bug 6963
@@ -146,9 +149,11 @@
 ^samba4.raw.acls.*.create_file
 ^samba4.smb2.create.*.acldir
 ^samba4.smb2.create.*.impersonation
+^samba4.smb2.create.*.mkdir-dup # bug 11486
 ^samba4.smb2.acls.*.generic
 ^samba4.smb2.acls.*.inheritflags
 ^samba4.smb2.acls.*.owner
+^samba4.smb2.acls.*.ACCESSBASED
 ^samba4.ldap.dirsync.python.dc..__main__.ExtendedDirsyncTests.test_dirsync_deleted_items
 #^samba4.ldap.dirsync.python.dc..__main__.ExtendedDirsyncTests.*
 ^samba4.libsmbclient.opendir.opendir # This requires netbios browsing
@@ -187,7 +192,6 @@
 ^samba3.smb2.create.blob
 ^samba3.smb2.create.open
 ^samba3.smb2.notify.valid-req
-^samba3.smb2.notify.dir
 ^samba3.smb2.notify.rec
 ^samba3.smb2.durable-open.delete_on_close2
 ^samba3.smb2.durable-v2-open.app-instance
@@ -261,6 +265,8 @@
 ^samba.wbinfo_simple.\(s4member:local\).--allocate-gid
 ^samba.wbinfo_simple.\(plugin_s4_dc:local\).--allocate-uid
 ^samba.wbinfo_simple.\(plugin_s4_dc:local\).--allocate-gid
+^samba.wbinfo_simple.\(chgdcpass:local\).--allocate-uid
+^samba.wbinfo_simple.\(chgdcpass:local\).--allocate-gid
 #
 # These do not work against winbindd in member mode for unknown reasons
 #

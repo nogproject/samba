@@ -1587,7 +1587,7 @@ void reply_search(struct smb_request *req)
 {
 	connection_struct *conn = req->conn;
 	char *path = NULL;
-	const char *mask = NULL;
+	char *mask = NULL;
 	char *directory = NULL;
 	struct smb_filename *smb_fname = NULL;
 	char *fname = NULL;
@@ -1668,11 +1668,11 @@ void reply_search(struct smb_request *req)
 
 		p = strrchr_m(directory,'/');
 		if ((p != NULL) && (*directory != '/')) {
-			mask = p + 1;
+			mask = talloc_strdup(ctx, p + 1);
 			directory = talloc_strndup(ctx, directory,
 						   PTR_DIFF(p, directory));
 		} else {
-			mask = directory;
+			mask = talloc_strdup(ctx, directory);
 			directory = talloc_strdup(ctx,".");
 		}
 
@@ -1721,7 +1721,7 @@ void reply_search(struct smb_request *req)
 			goto out;
 		}
 
-		mask = dptr_wcard(sconn, dptr_num);
+		mask = talloc_strdup(ctx, dptr_wcard(sconn, dptr_num));
 		if (!mask) {
 			goto SearchEmpty;
 		}
@@ -1860,6 +1860,7 @@ void reply_search(struct smb_request *req)
 		maxentries ));
  out:
 	TALLOC_FREE(directory);
+	TALLOC_FREE(mask);
 	TALLOC_FREE(smb_fname);
 	END_PROFILE(SMBsearch);
 	return;
@@ -2648,7 +2649,7 @@ static NTSTATUS can_rename(connection_struct *conn, files_struct *fsp,
 	}
 
 	if (S_ISDIR(fsp->fsp_name->st.st_ex_mode)) {
-		if (fsp->posix_open) {
+		if (fsp->posix_flags & (FSP_POSIX_FLAGS_OPEN|FSP_POSIX_FLAGS_RENAME)) {
 			return NT_STATUS_OK;
 		}
 
@@ -2894,6 +2895,9 @@ NTSTATUS unlink_internals(connection_struct *conn, struct smb_request *req,
 		if ((dirtype & SAMBA_ATTRIBUTES_MASK) == FILE_ATTRIBUTE_DIRECTORY) {
 			status = NT_STATUS_OBJECT_NAME_INVALID;
 			goto out;
+		}
+		if (dirtype == 0) {
+			dirtype = FILE_ATTRIBUTE_NORMAL;
 		}
 
 		if (strequal(fname_mask,"????????.???")) {
