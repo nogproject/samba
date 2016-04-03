@@ -1,6 +1,7 @@
 samba (2:4.2.9+dfsg-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+   + Drop patch Fix-CTDB-build-with-PMDA.patch: applied upstream.
 
  -- Jelmer Vernooij <jelmer@debian.org>  Sun, 03 Apr 2016 13:57:21 +0000
 
