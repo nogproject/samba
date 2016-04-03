@@ -120,7 +120,7 @@ bool lookup_name(TALLOC_CTX *mem_ctx,
 			goto ok;
 	}
 
-	if (((flags & LOOKUP_NAME_NO_NSS) == 0)
+	if (((flags & (LOOKUP_NAME_NO_NSS|LOOKUP_NAME_GROUP)) == 0)
 	    && strequal(domain, unix_users_domain_name())) {
 		if (lookup_unix_user_name(name, &sid)) {
 			type = SID_NAME_USER;
@@ -140,7 +140,31 @@ bool lookup_name(TALLOC_CTX *mem_ctx,
 		return false;
 	}
 
-	if ((domain[0] == '\0') && (!(flags & LOOKUP_NAME_ISOLATED))) {
+	/*
+	 * Finally check for a well known domain name ("NT Authority"),
+	 * this is taken care if in lookup_wellknown_name().
+	 */
+	if ((domain[0] != '\0') &&
+	    (flags & LOOKUP_NAME_WKN) &&
+	    lookup_wellknown_name(tmp_ctx, name, &sid, &domain))
+	{
+		type = SID_NAME_WKN_GRP;
+		goto ok;
+	}
+
+	/*
+	 * If we're told not to look up 'isolated' names then we're
+	 * done.
+	 */
+	if (!(flags & LOOKUP_NAME_ISOLATED)) {
+		TALLOC_FREE(tmp_ctx);
+		return false;
+	}
+
+	/*
+	 * No domain names beyond this point
+	 */
+	if (domain[0] != '\0') {
 		TALLOC_FREE(tmp_ctx);
 		return false;
 	}
@@ -151,6 +175,11 @@ bool lookup_name(TALLOC_CTX *mem_ctx,
 	 * November 27, 2005 */
 
 	/* 1. well-known names */
+
+	/*
+	 * Check for well known names without a domain name.
+	 * e.g. \Creator Owner.
+	 */
 
 	if ((flags & LOOKUP_NAME_WKN) &&
 	    lookup_wellknown_name(tmp_ctx, name, &sid, &domain))
@@ -293,7 +322,7 @@ bool lookup_name(TALLOC_CTX *mem_ctx,
 	/* 11. Ok, windows would end here. Samba has two more options:
                Unmapped users and unmapped groups */
 
-	if (((flags & LOOKUP_NAME_NO_NSS) == 0)
+	if (((flags & (LOOKUP_NAME_NO_NSS|LOOKUP_NAME_GROUP)) == 0)
 	    && lookup_unix_user_name(name, &sid)) {
 		domain = talloc_strdup(tmp_ctx, unix_users_domain_name());
 		type = SID_NAME_USER;

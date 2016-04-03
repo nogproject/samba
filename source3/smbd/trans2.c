@@ -54,6 +54,34 @@ static char *store_file_unix_basic_info2(connection_struct *conn,
 				files_struct *fsp,
 				const SMB_STRUCT_STAT *psbuf);
 
+/****************************************************************************
+ Check if an open file handle or pathname is a symlink.
+****************************************************************************/
+
+static NTSTATUS refuse_symlink(connection_struct *conn,
+			const files_struct *fsp,
+			const char *name)
+{
+	SMB_STRUCT_STAT sbuf;
+	const SMB_STRUCT_STAT *pst = NULL;
+
+	if (fsp) {
+		pst = &fsp->fsp_name->st;
+	} else {
+		int ret = vfs_stat_smb_basename(conn,
+				name,
+				&sbuf);
+		if (ret == -1) {
+			return map_nt_error_from_unix(errno);
+		}
+		pst = &sbuf;
+	}
+	if (S_ISLNK(pst->st_ex_mode)) {
+		return NT_STATUS_ACCESS_DENIED;
+	}
+	return NT_STATUS_OK;
+}
+
 /********************************************************************
  The canonical "check access" based on object handle or path function.
 ********************************************************************/
@@ -209,12 +237,22 @@ NTSTATUS get_ea_names_from_file(TALLOC_CTX *mem_ctx, connection_struct *conn,
 	char **names, **tmp;
 	size_t num_names;
 	ssize_t sizeret = -1;
+	NTSTATUS status;
+
+	if (pnames) {
+		*pnames = NULL;
+	}
+	*pnum_names = 0;
 
 	if (!lp_ea_support(SNUM(conn))) {
-		if (pnames) {
-			*pnames = NULL;
-		}
-		*pnum_names = 0;
+		return NT_STATUS_OK;
+	}
+
+	status = refuse_symlink(conn, fsp, fname);
+	if (!NT_STATUS_IS_OK(status)) {
+		/*
+		 * Just return no EA's on a symlink.
+		 */
 		return NT_STATUS_OK;
 	}
 
@@ -264,10 +302,6 @@ NTSTATUS get_ea_names_from_file(TALLOC_CTX *mem_ctx, connection_struct *conn,
 
 	if (sizeret == 0) {
 		TALLOC_FREE(names);
-		if (pnames) {
-			*pnames = NULL;
-		}
-		*pnum_names = 0;
 		return NT_STATUS_OK;
 	}
 
@@ -623,6 +657,11 @@ NTSTATUS set_ea(connection_struct *conn, files_struct *fsp,
 
 	if (!lp_ea_support(SNUM(conn))) {
 		return NT_STATUS_EAS_NOT_SUPPORTED;
+	}
+
+	status = refuse_symlink(conn, fsp, smb_fname->base_name);
+	if (!NT_STATUS_IS_OK(status)) {
+		return status;
 	}
 
 	status = check_access(conn, fsp, smb_fname, FILE_WRITE_EA);
@@ -2376,6 +2415,10 @@ NTSTATUS smbd_dirptr_lanman2_entry(TALLOC_CTX *ctx,
 				     ppdata,
 				     end_data,
 				     &last_entry_off);
+	if (NT_STATUS_EQUAL(status, NT_STATUS_ILLEGAL_CHARACTER)) {
+		DEBUG(1,("Conversion error: illegal character: %s\n",
+			 smb_fname_str_dbg(smb_fname)));
+	}
 	TALLOC_FREE(fname);
 	TALLOC_FREE(smb_fname);
 	if (NT_STATUS_EQUAL(status, STATUS_MORE_ENTRIES)) {
@@ -2472,6 +2515,7 @@ static void call_trans2findfirst(connection_struct *conn,
 	struct smbd_server_connection *sconn = req->sconn;
 	uint32_t ucf_flags = (UCF_SAVE_LCOMP | UCF_ALWAYS_ALLOW_WCARD_LCOMP);
 	bool backup_priv = false;
+	bool as_root = false;
 
 	if (total_params < 13) {
 		reply_nterror(req, NT_STATUS_INVALID_PARAMETER);
@@ -2537,6 +2581,7 @@ close_if_end = %d requires_resume_key = %d backup_priv = %d level = 0x%x, max_da
 
 	if (backup_priv) {
 		become_root();
+		as_root = true;
 		ntstatus = filename_convert_with_privilege(ctx,
 				conn,
 				req,
@@ -2635,7 +2680,11 @@ total_data=%u (should be %u)\n", (unsigned int)total_data, (unsigned int)IVAL(pd
 	}
 	pdata = *ppdata;
 	data_end = pdata + max_data_bytes + DIR_ENTRY_SAFETY_MARGIN - 1;
-
+	/*
+	 * squash valgrind "writev(vector[...]) points to uninitialised byte(s)"
+	 * error.
+	 */
+	memset(pdata + total_data, 0, ((max_data_bytes + DIR_ENTRY_SAFETY_MARGIN) - total_data));
 	/* Realloc the params space */
 	*pparams = (char *)SMB_REALLOC(*pparams, 10);
 	if (*pparams == NULL) {
@@ -2807,7 +2856,7 @@ total_data=%u (should be %u)\n", (unsigned int)total_data, (unsigned int)IVAL(pd
 	}
  out:
 
-	if (backup_priv) {
+	if (as_root) {
 		unbecome_root();
 	}
 
@@ -2861,6 +2910,7 @@ static void call_trans2findnext(connection_struct *conn,
 	struct dptr_struct *dirptr;
 	struct smbd_server_connection *sconn = req->sconn;
 	bool backup_priv = false; 
+	bool as_root = false;
 
 	if (total_params < 13) {
 		reply_nterror(req, NT_STATUS_INVALID_PARAMETER);
@@ -2981,6 +3031,11 @@ total_data=%u (should be %u)\n", (unsigned int)total_data, (unsigned int)IVAL(pd
 	pdata = *ppdata;
 	data_end = pdata + max_data_bytes + DIR_ENTRY_SAFETY_MARGIN - 1;
 
+	/*
+	 * squash valgrind "writev(vector[...]) points to uninitialised byte(s)"
+	 * error.
+	 */
+	memset(pdata + total_data, 0, (max_data_bytes + DIR_ENTRY_SAFETY_MARGIN) - total_data);
 	/* Realloc the params space */
 	*pparams = (char *)SMB_REALLOC(*pparams, 6*SIZEOFWORD);
 	if(*pparams == NULL ) {
@@ -3034,6 +3089,7 @@ total_data=%u (should be %u)\n", (unsigned int)total_data, (unsigned int)IVAL(pd
 
 	if (backup_priv) {
 		become_root();
+		as_root = true;
 	}
 
 	/*
@@ -3135,7 +3191,7 @@ total_data=%u (should be %u)\n", (unsigned int)total_data, (unsigned int)IVAL(pd
 		dptr_close(sconn, &dptr_num); /* This frees up the saved mask */
 	}
 
-	if (backup_priv) {
+	if (as_root) {
 		unbecome_root();
 	}
 
@@ -3600,6 +3656,7 @@ cBytesSector=%u, cUnitTotal=%u, cUnitAvail=%d\n", (unsigned int)bsize, (unsigned
 			case SMB_SIGNING_OFF:
 				encrypt_caps = 0;
 				break;
+			case SMB_SIGNING_DESIRED:
 			case SMB_SIGNING_IF_REQUIRED:
 			case SMB_SIGNING_DEFAULT:
 				encrypt_caps = CIFS_UNIX_TRANSPORT_ENCRYPTION_CAP;
@@ -5202,6 +5259,13 @@ NTSTATUS smbd_do_qfilepathinfo(connection_struct *conn,
 				uint16 num_file_acls = 0;
 				uint16 num_def_acls = 0;
 
+				status = refuse_symlink(conn,
+						fsp,
+						smb_fname->base_name);
+				if (!NT_STATUS_IS_OK(status)) {
+					return status;
+				}
+
 				if (fsp && fsp->fh->fd != -1) {
 					file_acl = SMB_VFS_SYS_ACL_GET_FD(fsp,
 						talloc_tos());
@@ -6699,6 +6763,7 @@ static NTSTATUS smb_set_posix_acl(connection_struct *conn,
 	uint16 num_def_acls;
 	bool valid_file_acls = True;
 	bool valid_def_acls = True;
+	NTSTATUS status;
 
 	if (total_data < SMB_POSIX_ACL_HEADER_SIZE) {
 		return NT_STATUS_INVALID_PARAMETER;
@@ -6724,6 +6789,11 @@ static NTSTATUS smb_set_posix_acl(connection_struct *conn,
 	if (total_data < SMB_POSIX_ACL_HEADER_SIZE +
 			(num_file_acls+num_def_acls)*SMB_POSIX_ACL_ENTRY_SIZE) {
 		return NT_STATUS_INVALID_PARAMETER;
+	}
+
+	status = refuse_symlink(conn, fsp, smb_fname->base_name);
+	if (!NT_STATUS_IS_OK(status)) {
+		return status;
 	}
 
 	DEBUG(10,("smb_set_posix_acl: file %s num_file_acls = %u, num_def_acls = %u\n",

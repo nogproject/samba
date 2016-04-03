@@ -70,14 +70,6 @@ def set_options(opt):
                   help=("Disable RELRO builds"),
                   action="store_false", dest='enable_relro')
 
-    opt.add_option('--with-systemd',
-                   help=("Enable systemd integration"),
-                   action='store_true', dest='enable_systemd')
-
-    opt.add_option('--without-systemd',
-                   help=("Disable systemd integration"),
-                   action='store_false', dest='enable_systemd')
-
     gr = opt.option_group('developer options')
 
     opt.tool_options('python') # options for disabling pyc or pyo compilation
@@ -177,8 +169,7 @@ def configure(conf):
     # allows us to find problems on our development hosts faster.
     # It also results in faster load time.
 
-    if not sys.platform.startswith("openbsd"):
-        conf.env.asneeded_ldflags = conf.ADD_LDFLAGS('-Wl,--as-needed', testflags=True)
+    conf.env.asneeded_ldflags = conf.ADD_LDFLAGS('-Wl,--as-needed', testflags=True)
 
     if not conf.CHECK_NEED_LC("-lc not needed"):
         conf.ADD_LDFLAGS('-lc', testflags=False)
@@ -213,20 +204,6 @@ def configure(conf):
         if conf.check_cc(cflags='', ldflags='-Wl,-z,relro,-z,now', mandatory=need_relro,
                          msg="Checking compiler for full RELRO support"):
             conf.env['ENABLE_RELRO'] = True
-
-    if Options.options.enable_systemd != False:
-        conf.check_cfg(package='libsystemd-daemon', args='--cflags --libs',
-                       msg='Checking for libsystemd-daemon', uselib_store="SYSTEMD-DAEMON")
-        conf.CHECK_HEADERS('systemd/sd-daemon.h', lib='systemd-daemon')
-        conf.CHECK_LIB('systemd-daemon', shlib=True)
-
-    if (conf.CONFIG_SET('HAVE_SYSTEMD_SD_DAEMON_H') and
-        conf.CONFIG_SET('HAVE_LIBSYSTEMD_DAEMON')):
-        conf.DEFINE('HAVE_SYSTEMD', '1')
-        conf.env['ENABLE_SYSTEMD'] = True
-    else:
-        conf.SET_TARGET_TYPE('systemd-daemon', 'EMPTY')
-        conf.undefine('HAVE_SYSTEMD')
 
     conf.SAMBA_CONFIG_H('include/config.h')
 
