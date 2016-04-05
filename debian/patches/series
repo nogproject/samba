@@ -20,3 +20,4 @@ fix_pam_smbpass.patch
 disable-socketwrapper.diff
 unprivate-samba-debug.patch
 ctdb-Fix-detection-of-gnukfreebsd.patch
+s3-libsmb-Fix-error-where-short-name-length-was-read.patch
