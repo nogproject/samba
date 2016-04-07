@@ -148,12 +148,10 @@ def configure(conf):
     conf.RECURSE('lib/ntdb')
     conf.RECURSE('lib/util/charset')
     conf.RECURSE('source4/auth')
-    if conf.CONFIG_GET('ENABLE_SELFTEST'):
-        conf.RECURSE('lib/nss_wrapper')
+    conf.RECURSE('lib/nss_wrapper')
     conf.RECURSE('nsswitch')
-    if conf.CONFIG_GET('ENABLE_SELFTEST'):
-        conf.RECURSE('lib/socket_wrapper')
-        conf.RECURSE('lib/uid_wrapper')
+    conf.RECURSE('lib/socket_wrapper')
+    conf.RECURSE('lib/uid_wrapper')
     conf.RECURSE('lib/subunit/c')
     conf.RECURSE('libcli/smbreadline')
     conf.RECURSE('lib/crypto')
