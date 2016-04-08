@@ -15,6 +15,10 @@ samba (2:4.2.10+dfsg-1+deb7u1) UNRELEASED; urgency=medium
     - CVE-2016-2114 ("server signing = mandatory" not enforced)
     - CVE-2016-2115 (SMB IPC traffic is not integrity protected)
     - CVE-2016-2118 (SAMR and LSA man in the middle attacks possible)
+  * Backport BackupKey patches from Samba 4.3.0 to avoid regressions
+
+  [ Marc Deslauriers ]
+  * Fix double-free in pam_smbpass
 
  -- Andrew Bartlett <abartlet+debian@catalyst.net.nz>  Fri, 08 Apr 2016 02:20:29 +1200
 
