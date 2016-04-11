@@ -19,3 +19,4 @@ backupkey.patch
 fix_pam_smbpass.patch
 disable-socketwrapper.diff
 sockets-with-htons.patch
+unprivate-samba-debug.patch

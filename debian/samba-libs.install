@@ -113,7 +113,6 @@ usr/lib/*/samba/libprinting-migrate.so.0
 usr/lib/*/samba/libtdb-compat.so.0
 usr/lib/*/samba/libLIBWBCLIENT-OLD.so.0
 usr/lib/*/samba/libkrb5-samba4.so.26
-usr/lib/*/samba/libsamba-debug.so.0
 usr/lib/*/samba/libheimntlm-samba4.so.1.0.1
 usr/lib/*/samba/libtrusts-util.so.0
 usr/lib/*/samba/libgssapi-samba4.so.2.0.0
