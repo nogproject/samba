@@ -16,6 +16,7 @@ samba (2:4.2.10+dfsg-1+deb7u1) UNRELEASED; urgency=medium
     - CVE-2016-2115 (SMB IPC traffic is not integrity protected)
     - CVE-2016-2118 (SAMR and LSA man in the middle attacks possible)
   * Backport BackupKey patches from Samba 4.3.0 to avoid regressions
+  * Additional regression fix for 'net ads join' to a Windows 2003 domain by metze
 
   [ Marc Deslauriers ]
   * Fix double-free in pam_smbpass
