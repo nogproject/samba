@@ -138,7 +138,8 @@ Breaks: libdcerpc-server0 (<< 2:4.0.9),
         libsamdb0 (<< 2:4.0.9),
         libsmbclient-raw0 (<< 2:4.0.9),
         libsmbd0 (<< 2:4.0.9),
-        libtorture0 (<< 2:4.0.9)
+        libtorture0 (<< 2:4.0.9),
+	openchangeproxy (<< 1:2.2-6)
 Replaces: libdcerpc-server0 (<< 2:4.0.9),
           libdcerpc0 (<< 2:4.0.9),
           libgensec0 (<< 2:4.0.9),
