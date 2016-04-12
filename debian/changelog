@@ -1,8 +1,18 @@
 samba (2:4.2.9+dfsg-1) UNRELEASED; urgency=medium
 
+  [ Jelmer Vernooij ]
   * New upstream release.
    + Drop patch Fix-CTDB-build-with-PMDA.patch: applied upstream.
   * Re-enable cluster support.
+  * Add patch no_wrapper: avoid dependencies on
+    {nss,uid,socket}_wrapper.
+
+  [ Mathieu Parent ]
+  * Fix CTDB behavior since CVE-2015-8543 (Closes: #813406)
+  * Don't build ctdb twice:
+    - Shorten build time
+    - Fix ctdb log path from /var/log/log.ctdb to /var/log/ctdb/log.ctdb
+    - Remove unused /usr/lib/*/ctdb/*.so files
 
  -- Jelmer Vernooij <jelmer@debian.org>  Sun, 03 Apr 2016 13:57:21 +0000
 
