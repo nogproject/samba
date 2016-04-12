@@ -3,6 +3,21 @@ samba (2:4.2.10+dfsg-1+deb7u1) UNRELEASED; urgency=medium
   [ Jelmer Vernooij ]
   * New upstream release.
    + Drop patch Fix-CTDB-build-with-PMDA.patch: applied upstream.
+  * Re-enable cluster support.
+  * Add patch no_wrapper: avoid dependencies on
+    {nss,uid,socket}_wrapper.
+
+  [ Mathieu Parent ]
+  * Fix CTDB behavior since CVE-2015-8543 (Closes: #813406)
+  * Don't build ctdb twice:
+    - Shorten build time
+    - Fix ctdb log path from /var/log/log.ctdb to /var/log/ctdb/log.ctdb
+    - Remove unused /usr/lib/*/ctdb/*.so files
+
+  [ Andrew Bartlett ]
+  * Revert the change to made libsamba-debug a library, allowing openchange
+    to link to Samba 4.2
+  * Add Breaks against openchangeproxy that uses an API and ABI that has changed
 
   [ Andrew Bartlett ]
   * New upstream release

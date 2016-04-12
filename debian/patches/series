@@ -18,3 +18,6 @@ decrease-min-ldb-version.patch
 backupkey.patch
 fix_pam_smbpass.patch
 security-2016-04-12-prerequisite-v4-2-regression-fixes.metze01.txt
+disable-socketwrapper.diff
+sockets-with-htons.patch
+unprivate-samba-debug.patch
