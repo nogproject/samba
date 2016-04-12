@@ -1,4 +1,4 @@
-samba (2:4.2.10+dfsg-1+deb7u1) UNRELEASED; urgency=medium
+samba (2:4.2.10+dfsg-0+deb8u1) UNRELEASED; urgency=high
 
   [ Jelmer Vernooij ]
   * New upstream release.
@@ -15,11 +15,6 @@ samba (2:4.2.10+dfsg-1+deb7u1) UNRELEASED; urgency=medium
     - Remove unused /usr/lib/*/ctdb/*.so files
 
   [ Andrew Bartlett ]
-  * Revert the change to made libsamba-debug a library, allowing openchange
-    to link to Samba 4.2
-  * Add Breaks against openchangeproxy that uses an API and ABI that has changed
-
-  [ Andrew Bartlett ]
   * New upstream release
    + Fixes:
     - CVE-2015-5370 (Multiple errors in DCE-RPC code)
@@ -32,11 +27,14 @@ samba (2:4.2.10+dfsg-1+deb7u1) UNRELEASED; urgency=medium
     - CVE-2016-2118 (SAMR and LSA man in the middle attacks possible)
   * Backport BackupKey patches from Samba 4.3.0 to avoid regressions
   * Additional regression fix for 'net ads join' to a Windows 2003 domain by metze
+  * Revert the change to made libsamba-debug a library, allowing openchange
+    to link to Samba 4.2
+  * Add Breaks against openchangeproxy that uses an API and ABI that has changed
 
   [ Marc Deslauriers ]
   * Fix double-free in pam_smbpass
 
- -- Andrew Bartlett <abartlet+debian@catalyst.net.nz>  Fri, 08 Apr 2016 02:20:29 +1200
+ -- Andrew Bartlett <abartlet+debian@catalyst.net.nz>  Tue, 12 Apr 2016 16:18:57 +1200
 
 samba (2:4.2.1+dfsg-1) experimental; urgency=medium
 
