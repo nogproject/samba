@@ -124,3 +124,6 @@ usr/lib/*/samba/libwind-samba4.so.0
 usr/lib/*/samba/libhx509-samba4.so.5.0.0
 usr/lib/*/samba/libnss-info.so.0
 usr/lib/*/samba/libroken-samba4.so.19
+usr/lib/*/samba/libsmbd-base.so.0
+usr/lib/*/samba/process_model/*.so
+usr/lib/*/samba/libprocess-model.so.0
