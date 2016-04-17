@@ -1,4 +1,4 @@
-samba (2:4.2.10+dfsg-0+deb8u1) UNRELEASED; urgency=high
+samba (2:4.2.10+dfsg-0+deb8u1) jessie-security; urgency=high
 
   [ Jelmer Vernooij ]
   * New upstream release.
