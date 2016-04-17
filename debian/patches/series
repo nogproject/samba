@@ -21,4 +21,3 @@ security-2016-04-12-prerequisite-v4-2-regression-fixes.metze01.txt
 disable-socketwrapper.diff
 sockets-with-htons.patch
 unprivate-samba-debug.patch
-ctdb-Fix-detection-of-gnukfreebsd.patch
