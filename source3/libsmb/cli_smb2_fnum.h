@@ -176,4 +176,10 @@ struct tevent_req *cli_smb2_writeall_send(TALLOC_CTX *mem_ctx,
 			size_t size);
 NTSTATUS cli_smb2_writeall_recv(struct tevent_req *req,
 			size_t *pwritten);
+NTSTATUS cli_smb2_shadow_copy_data(TALLOC_CTX *mem_ctx,
+			struct cli_state *cli,
+			uint16_t fnum,
+			bool get_names,
+			char ***pnames,
+			int *pnum_names);
 #endif /* __SMB2CLI_FNUM_H__ */
