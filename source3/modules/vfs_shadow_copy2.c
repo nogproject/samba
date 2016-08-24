@@ -2151,6 +2151,7 @@ static const char *shadow_copy2_connectpath(struct vfs_handle_struct *handle,
 	char *tmp = NULL;
 	char *result = NULL;
 	int saved_errno = 0;
+	char *parent_dir = NULL;
 	size_t rootpath_len = 0;
 	struct shadow_copy2_config *config = NULL;
 
@@ -2176,7 +2177,34 @@ static const char *shadow_copy2_connectpath(struct vfs_handle_struct *handle,
 	tmp = shadow_copy2_do_convert(talloc_tos(), handle, stripped, timestamp,
 				      &rootpath_len);
 	if (tmp == NULL) {
-		goto done;
+		if (errno != ENOENT) {
+			goto done;
+		}
+
+		/*
+		 * If the converted path does not exist, and converting
+		 * the parent yields something that does exist, then
+		 * this path refers to something that has not been
+		 * created yet, relative to the parent path.
+		 * The snapshot finding is relative to the parent.
+		 * (usually snapshots are read/only but this is not
+		 * necessarily true).
+		 * This code also covers getting a wildcard in the
+		 * last component, because this function is called
+		 * prior to sanitizing the path, and in SMB1 we may
+		 * get wildcards in path names.
+		 */
+		if (!parent_dirname(talloc_tos(), stripped, &parent_dir,
+				    NULL)) {
+			errno = ENOMEM;
+			goto done;
+		}
+
+		tmp = shadow_copy2_do_convert(talloc_tos(), handle, parent_dir,
+					      timestamp, &rootpath_len);
+		if (tmp == NULL) {
+			goto done;
+		}
 	}
 
 	DEBUG(10,("converted path is [%s] root path is [%.*s]\n", tmp,
@@ -2203,6 +2231,7 @@ done:
 	}
 	TALLOC_FREE(tmp);
 	TALLOC_FREE(stripped);
+	TALLOC_FREE(parent_dir);
 	if (saved_errno != 0) {
 		errno = saved_errno;
 	}
