@@ -189,7 +189,6 @@ int pam_sm_setcred(pam_handle_t *pamh, int flags,
 	_pam_get_data(pamh, "smb_setcred_return", &pretval);
 	if(pretval) {
 		retval = *pretval;
-		SAFE_FREE(pretval);
 	}
 	pam_set_data(pamh, "smb_setcred_return", NULL, NULL);
 

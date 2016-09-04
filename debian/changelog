@@ -4,6 +4,8 @@ samba (2:4.2.14+dfsg-0+deb8u1) UNRELEASED; urgency=high
    + Fixes CVE-2016-2119: Client side SMB2/3 required signing can be downgraded.
    + Various fixes for regressions introduced by the 4.2.10 security fixes.
    Closes: #820965, #827141
+  * Drop obsolete patch security-2016-04-12-prerequisite-v4-2-regression-
+    fixes.metze01.txt.
 
  -- Jelmer Vernooĳ <jelmer@debian.org>  Sun, 04 Sep 2016 14:21:35 +0000
 
