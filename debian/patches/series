@@ -18,7 +18,6 @@ decrease-min-ldb-version.patch
 backupkey.patch
 fix_pam_smbpass.patch
 disable-socketwrapper.diff
-sockets-with-htons.patch
 unprivate-samba-debug.patch
 CVE-2016-2110-NTLMSSP-regression.patch
 ctdb-Fix-detection-of-gnukfreebsd.patch
