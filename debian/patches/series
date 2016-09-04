@@ -19,6 +19,5 @@ backupkey.patch
 fix_pam_smbpass.patch
 disable-socketwrapper.diff
 unprivate-samba-debug.patch
-CVE-2016-2110-NTLMSSP-regression.patch
 ctdb-Fix-detection-of-gnukfreebsd.patch
 s3-smbd-fix-anonymous-authentication-if-signing-is-m.patch
