@@ -20,4 +20,3 @@ fix_pam_smbpass.patch
 disable-socketwrapper.diff
 unprivate-samba-debug.patch
 ctdb-Fix-detection-of-gnukfreebsd.patch
-s3-smbd-fix-anonymous-authentication-if-signing-is-m.patch

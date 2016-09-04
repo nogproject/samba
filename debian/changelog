@@ -8,6 +8,8 @@ samba (2:4.2.14+dfsg-0+deb8u1) UNRELEASED; urgency=high
     fixes.metze01.txt.
   * Drop patch sockets-with-htons.patch; applied upstream.
   * Drop patch CVE-2016-2110-NTLMSSP-regression.patch; fixed upstream.
+  * Drop patch s3-smbd-fix-anonymous-authentication-if-signing-is-
+    m.patch: fixed upstream.
 
  -- Jelmer Vernooĳ <jelmer@debian.org>  Sun, 04 Sep 2016 14:21:35 +0000
 
