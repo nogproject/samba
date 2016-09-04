@@ -39,6 +39,7 @@ struct tevent_fd;
 struct tevent_timer;
 struct tevent_immediate;
 struct tevent_signal;
+struct tevent_thread_proxy;
 
 /**
  * @defgroup tevent The tevent API
@@ -176,6 +177,11 @@ void tevent_set_default_backend(const char *backend);
  *
  * @note To cancel the monitoring of a file descriptor, call talloc_free()
  * on the object returned by this function.
+ *
+ * @note The caller should avoid closing the file descriptor before
+ * calling talloc_free()! Otherwise the behaviour is undefined which
+ * might result in crashes. See https://bugzilla.samba.org/show_bug.cgi?id=11141
+ * for an example.
  */
 struct tevent_fd *tevent_add_fd(struct tevent_context *ev,
 				TALLOC_CTX *mem_ctx,
@@ -611,8 +617,8 @@ void tevent_get_trace_callback(struct tevent_context *ev,
  * file descriptor (tevent_add_fd) and timer (tevent_add_timed) events
  * are considered too low-level to be used in larger computations. To
  * read and write from and to sockets, Samba provides two calls on top
- * of tevent_add_fd: read_packet_send/recv and writev_send/recv. These
- * requests are much easier to compose than the low-level event
+ * of tevent_add_fd: tstream_read_packet_send/recv and tstream_writev_send/recv.
+ * These requests are much easier to compose than the low-level event
  * handlers called from tevent_add_fd.
  *
  * A lot of the simplicity tevent_req has brought to the notoriously
@@ -1693,6 +1699,57 @@ typedef int (*tevent_nesting_hook)(struct tevent_context *ev,
 				   bool begin,
 				   void *stack_ptr,
 				   const char *location);
+
+/**
+ * @brief Create a tevent_thread_proxy for message passing between threads.
+ *
+ * The tevent_context must have been allocated on the NULL
+ * talloc context, and talloc_disable_null_tracking() must
+ * have been called.
+ *
+ * @param[in]  dest_ev_ctx      The tevent_context to receive events.
+ *
+ * @return              An allocated tevent_thread_proxy, NULL on error.
+ *                      If tevent was compiled without PTHREAD support
+ *                      NULL is always returned and errno set to ENOSYS.
+ *
+ * @see tevent_thread_proxy_schedule()
+ */
+struct tevent_thread_proxy *tevent_thread_proxy_create(
+                struct tevent_context *dest_ev_ctx);
+
+/**
+ * @brief Schedule an immediate event on an event context from another thread.
+ *
+ * Causes dest_ev_ctx, being run by another thread, to receive an
+ * immediate event calling the handler with the *pp_private parameter.
+ *
+ * *pp_im must be a pointer to an immediate event talloced on a context owned
+ * by the calling thread, or the NULL context. Ownership will
+ * be transferred to the tevent_thread_proxy and *pp_im will be returned as NULL.
+ *
+ * *pp_private_data must be a talloced area of memory with no destructors.
+ * Ownership of this memory will be transferred to the tevent library and
+ * *pp_private_data will be set to NULL on successful completion of
+ * the call. Set pp_private to NULL if no parameter transfer
+ * needed (a pure callback). This is an asynchronous request, caller
+ * does not wait for callback to be completed before returning.
+ *
+ * @param[in]  tp               The tevent_thread_proxy to use.
+ *
+ * @param[in]  pp_im            Pointer to immediate event pointer.
+ *
+ * @param[in]  handler          The function that will be called.
+ *
+ * @param[in]  pp_private_data  The talloced memory to transfer.
+ *
+ * @see tevent_thread_proxy_create()
+ */
+void tevent_thread_proxy_schedule(struct tevent_thread_proxy *tp,
+				  struct tevent_immediate **pp_im,
+				  tevent_immediate_handler_t handler,
+				  void *pp_private_data);
+
 #ifdef TEVENT_DEPRECATED
 #ifndef _DEPRECATED_
 #if (__GNUC__ >= 3) && (__GNUC_MINOR__ >= 1 )

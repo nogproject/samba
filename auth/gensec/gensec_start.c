@@ -203,8 +203,10 @@ _PUBLIC_ const struct gensec_security_ops *gensec_security_by_sasl_name(
 	}
 	backends = gensec_security_mechs(gensec_security, mem_ctx);
 	for (i=0; backends && backends[i]; i++) {
-		if (!gensec_security_ops_enabled(backends[i], gensec_security))
-		    continue;
+		if (gensec_security != NULL &&
+		    !gensec_security_ops_enabled(backends[i], gensec_security)) {
+			continue;
+		}
 		if (backends[i]->sasl_name
 		    && (strcmp(backends[i]->sasl_name, sasl_name) == 0)) {
 			backend = backends[i];
@@ -224,7 +226,13 @@ _PUBLIC_ const struct gensec_security_ops *gensec_security_by_auth_type(
 	int i;
 	const struct gensec_security_ops **backends;
 	const struct gensec_security_ops *backend;
-	TALLOC_CTX *mem_ctx = talloc_new(gensec_security);
+	TALLOC_CTX *mem_ctx;
+
+	if (auth_type == DCERPC_AUTH_TYPE_NONE) {
+		return NULL;
+	}
+
+	mem_ctx = talloc_new(gensec_security);
 	if (!mem_ctx) {
 		return NULL;
 	}
@@ -245,8 +253,8 @@ _PUBLIC_ const struct gensec_security_ops *gensec_security_by_auth_type(
 	return NULL;
 }
 
-static const struct gensec_security_ops *gensec_security_by_name(struct gensec_security *gensec_security,
-								 const char *name)
+const struct gensec_security_ops *gensec_security_by_name(struct gensec_security *gensec_security,
+							  const char *name)
 {
 	int i;
 	const struct gensec_security_ops **backends;
@@ -716,6 +724,12 @@ _PUBLIC_ NTSTATUS gensec_start_mech_by_authtype(struct gensec_security *gensec_s
 		return NT_STATUS_INVALID_PARAMETER;
 	}
 	gensec_security->dcerpc_auth_level = auth_level;
+	/*
+	 * We need to reset sign/seal in order to reset it.
+	 * We may got some default features inherited by the credentials
+	 */
+	gensec_security->want_features &= ~GENSEC_FEATURE_SIGN;
+	gensec_security->want_features &= ~GENSEC_FEATURE_SEAL;
 	gensec_want_feature(gensec_security, GENSEC_FEATURE_DCE_STYLE);
 	gensec_want_feature(gensec_security, GENSEC_FEATURE_ASYNC_REPLIES);
 	if (auth_level == DCERPC_AUTH_LEVEL_INTEGRITY) {

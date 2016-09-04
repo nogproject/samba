@@ -620,7 +620,24 @@ static NTSTATUS get_nt_acl_internal(vfs_handle_struct *handle,
 			}
 			psbuf = &fsp->fsp_name->st;
 		} else {
-			int ret = vfs_stat_smb_fname(handle->conn,
+			/*
+			 * https://bugzilla.samba.org/show_bug.cgi?id=11249
+			 *
+			 * We are currently guaranteed that 'name' here is
+			 * a smb_fname->base_name, which *cannot* contain
+			 * a stream name (':'). vfs_stat_smb_fname() splits
+			 * a name into a base name + stream name, which
+			 * when we get here we know we've already done.
+			 * So we have to call the stat or lstat VFS
+			 * calls directly here. Else, a base_name that
+			 * contains a ':' (from a demangled name) will
+			 * get split again.
+			 *
+			 * FIXME.
+			 * This uglyness will go away once smb_fname
+			 * is fully plumbed through the VFS.
+			 */
+			int ret = vfs_stat_smb_basename(handle->conn,
 						name,
 						&sbuf);
 			if (ret == -1) {
@@ -1072,7 +1089,7 @@ static int chmod_acl_module_common(struct vfs_handle_struct *handle,
 static int fchmod_acl_module_common(struct vfs_handle_struct *handle,
 			struct files_struct *fsp, mode_t mode)
 {
-	if (fsp->posix_open) {
+	if (fsp->posix_flags & FSP_POSIX_FLAGS_OPEN) {
 		/* Only allow this on POSIX opens. */
 		return SMB_VFS_NEXT_FCHMOD(handle, fsp, mode);
 	}
@@ -1092,7 +1109,7 @@ static int chmod_acl_acl_module_common(struct vfs_handle_struct *handle,
 static int fchmod_acl_acl_module_common(struct vfs_handle_struct *handle,
 			struct files_struct *fsp, mode_t mode)
 {
-	if (fsp->posix_open) {
+	if (fsp->posix_flags & FSP_POSIX_FLAGS_OPEN) {
 		/* Only allow this on POSIX opens. */
 		return SMB_VFS_NEXT_FCHMOD_ACL(handle, fsp, mode);
 	}

@@ -96,9 +96,10 @@ static void release_file_oplock(files_struct *fsp)
 {
 	struct smbd_server_connection *sconn = fsp->conn->sconn;
 	struct kernel_oplocks *koplocks = sconn->oplocks.kernel_ops;
+	bool use_kernel = lp_kernel_oplocks(SNUM(fsp->conn)) && koplocks;
 
 	if ((fsp->oplock_type != NO_OPLOCK) &&
-	    koplocks) {
+	    use_kernel) {
 		koplocks->ops->release_oplock(koplocks, fsp, NO_OPLOCK);
 	}
 
@@ -189,6 +190,7 @@ bool update_num_read_oplocks(files_struct *fsp, struct share_mode_lock *lck)
 		/*
 		 * If we're the only one, we don't need a brlock entry
 		 */
+		remove_stale_share_mode_entries(d);
 		SMB_ASSERT(d->num_share_modes == 1);
 		SMB_ASSERT(EXCLUSIVE_OPLOCK_TYPE(d->share_modes[0].op_type));
 		return true;

@@ -153,6 +153,43 @@ static int tsocket_bsd_common_prepare_fd(int fd, bool high_fd)
 	return -1;
 }
 
+#ifdef HAVE_LINUX_RTNETLINK_H
+/**
+ * Get the amount of pending bytes from a netlink socket
+ *
+ * For some reason netlink sockets don't support querying the amount of pending
+ * data via ioctl with FIONREAD, which is what we use in tsocket_bsd_pending()
+ * below.
+ *
+ * We know we are on Linux as we're using netlink, which means we have a working
+ * MSG_TRUNC flag to recvmsg() as well, so we use that together with MSG_PEEK.
+ **/
+static ssize_t tsocket_bsd_netlink_pending(int fd)
+{
+	struct iovec iov;
+	struct msghdr msg;
+	char buf[1];
+
+	iov = (struct iovec) {
+		.iov_base = buf,
+		.iov_len = sizeof(buf)
+	};
+
+	msg = (struct msghdr) {
+		.msg_iov = &iov,
+		.msg_iovlen = 1
+	};
+
+	return recvmsg(fd, &msg, MSG_PEEK | MSG_TRUNC);
+}
+#else
+static ssize_t tsocket_bsd_netlink_pending(int fd)
+{
+	errno = ENOSYS;
+	return -1;
+}
+#endif
+
 static ssize_t tsocket_bsd_pending(int fd)
 {
 	int ret, error;
@@ -661,6 +698,7 @@ struct tdgram_bsd {
 	void *event_ptr;
 	struct tevent_fd *fde;
 	bool optimize_recvfrom;
+	bool netlink;
 
 	void *readable_private;
 	void (*readable_handler)(void *private_data);
@@ -913,7 +951,12 @@ static void tdgram_bsd_recvfrom_handler(void *private_data)
 	int err;
 	bool retry;
 
-	ret = tsocket_bsd_pending(bsds->fd);
+	if (bsds->netlink) {
+		ret = tsocket_bsd_netlink_pending(bsds->fd);
+	} else {
+		ret = tsocket_bsd_pending(bsds->fd);
+	}
+
 	if (state->first_try && ret == 0) {
 		state->first_try = false;
 		/* retry later */
@@ -1409,6 +1452,47 @@ static int tdgram_bsd_dgram_socket(const struct tsocket_address *local,
 	return 0;
 }
 
+int _tdgram_bsd_existing_socket(TALLOC_CTX *mem_ctx,
+				int fd,
+				struct tdgram_context **_dgram,
+				const char *location)
+{
+	struct tdgram_context *dgram;
+	struct tdgram_bsd *bsds;
+#ifdef HAVE_LINUX_RTNETLINK_H
+	int result;
+	struct sockaddr sa;
+	socklen_t sa_len = sizeof(struct sockaddr);
+#endif
+
+	dgram = tdgram_context_create(mem_ctx,
+				      &tdgram_bsd_ops,
+				      &bsds,
+				      struct tdgram_bsd,
+				      location);
+	if (!dgram) {
+		return -1;
+	}
+	ZERO_STRUCTP(bsds);
+	bsds->fd = fd;
+	talloc_set_destructor(bsds, tdgram_bsd_destructor);
+
+	*_dgram = dgram;
+
+#ifdef HAVE_LINUX_RTNETLINK_H
+	/*
+	 * Try to determine the protocol family and remember if it's
+	 * AF_NETLINK. We don't care if this fails.
+	 */
+	result = getsockname(fd, &sa, &sa_len);
+	if (result == 0 && sa.sa_family == AF_NETLINK) {
+		bsds->netlink = true;
+	}
+#endif
+
+	return 0;
+}
+
 int _tdgram_inet_udp_socket(const struct tsocket_address *local,
 			    const struct tsocket_address *remote,
 			    TALLOC_CTX *mem_ctx,
@@ -1433,6 +1517,36 @@ int _tdgram_inet_udp_socket(const struct tsocket_address *local,
 	}
 
 	ret = tdgram_bsd_dgram_socket(local, remote, false,
+				      mem_ctx, dgram, location);
+
+	return ret;
+}
+
+int _tdgram_inet_udp_broadcast_socket(const struct tsocket_address *local,
+				      TALLOC_CTX *mem_ctx,
+				      struct tdgram_context **dgram,
+				      const char *location)
+{
+	struct tsocket_address_bsd *lbsda =
+		talloc_get_type_abort(local->private_data,
+		struct tsocket_address_bsd);
+	int ret;
+
+	switch (lbsda->u.sa.sa_family) {
+	case AF_INET:
+		break;
+#ifdef HAVE_IPV6
+	case AF_INET6:
+		/* only ipv4 */
+		errno = EINVAL;
+		return -1;
+#endif
+	default:
+		errno = EINVAL;
+		return -1;
+	}
+
+	ret = tdgram_bsd_dgram_socket(local, NULL, true,
 				      mem_ctx, dgram, location);
 
 	return ret;

@@ -41,6 +41,14 @@
 #include "lib/util/tsort.h"
 #include "libds/common/flag_mapping.h"
 
+#define DCESRV_INTERFACE_SAMR_BIND(call, iface) \
+       dcesrv_interface_samr_bind(call, iface)
+static NTSTATUS dcesrv_interface_samr_bind(struct dcesrv_call_state *dce_call,
+					     const struct dcesrv_interface *iface)
+{
+	return dcesrv_interface_bind_reject_connect(dce_call, iface);
+}
+
 /* these query macros make samr_Query[User|Group|Alias]Info a bit easier to read */
 
 #define QUERY_STRING(msg, field, attr) \
@@ -3577,17 +3585,23 @@ static NTSTATUS dcesrv_samr_GetGroupsForUser(struct dcesrv_call_state *dce_call,
 	const char * const attrs[2] = { "objectSid", NULL };
 	struct samr_RidWithAttributeArray *array;
 	int i, count;
+	char membersidstr[DOM_SID_STR_BUFLEN];
 
 	DCESRV_PULL_HANDLE(h, r->in.user_handle, SAMR_HANDLE_USER);
 
 	a_state = h->data;
 	d_state = a_state->domain_state;
 
+	dom_sid_string_buf(a_state->account_sid,
+			   membersidstr, sizeof(membersidstr)),
+
 	count = samdb_search_domain(a_state->sam_ctx, mem_ctx,
 				    d_state->domain_dn, &res,
 				    attrs, d_state->domain_sid,
-				    "(&(member=%s)(|(grouptype=%d)(grouptype=%d))(objectclass=group))",
-				    ldb_dn_get_linearized(a_state->account_dn),
+				    "(&(member=<SID=%s>)"
+				     "(|(grouptype=%d)(grouptype=%d))"
+				     "(objectclass=group))",
+				    membersidstr,
 				    GTYPE_SECURITY_UNIVERSAL_GROUP,
 				    GTYPE_SECURITY_GLOBAL_GROUP);
 	if (count < 0)
@@ -4309,6 +4323,10 @@ static NTSTATUS dcesrv_samr_ValidatePassword(struct dcesrv_call_state *dce_call,
 		dcerpc_binding_get_transport(dce_call->conn->endpoint->ep_description);
 
 	if (transport != NCACN_IP_TCP && transport != NCALRPC) {
+		DCESRV_FAULT(DCERPC_FAULT_ACCESS_DENIED);
+	}
+
+	if (dce_call->conn->auth_state.auth_level != DCERPC_AUTH_LEVEL_PRIVACY) {
 		DCESRV_FAULT(DCERPC_FAULT_ACCESS_DENIED);
 	}
 

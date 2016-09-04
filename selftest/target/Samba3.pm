@@ -173,6 +173,13 @@ sub setup_env($$$)
 	        return $self->{vars}->{$envname};
 	}
 
+	#
+	# Avoid hitting system krb5.conf -
+	# An env that needs Kerberos will reset this to the real
+	# value.
+	#
+	$ENV{KRB5_CONFIG} = "$path/no_krb5.conf";
+
 	if ($envname eq "s3dc") {
 		return $self->setup_s3dc("$path/s3dc");
 	} elsif ($envname eq "simpleserver") {
@@ -203,6 +210,7 @@ sub setup_s3dc($$)
 	domain master = yes
 	domain logons = yes
 	lanman auth = yes
+	raw NTLMv2 auth = yes
 
 	rpc_server:epmapper = external
 	rpc_server:spoolss = external
@@ -882,6 +890,9 @@ sub provision($$$$$$)
 	my $lease2_shrdir="$shrdir/SMB3_00";
 	push(@dirs,$lease2_shrdir);
 
+	my $manglenames_shrdir="$shrdir/manglenames";
+	push(@dirs,$manglenames_shrdir);
+
 	# this gets autocreated by winbindd
 	my $wbsockdir="$prefix_abs/winbindd";
 	my $wbsockprivdir="$lockdir/winbindd_privileged";
@@ -963,6 +974,12 @@ sub provision($$$$$$)
         }
         close(BADNAME_TARGET);
         chmod 0666, $badname_target;
+
+	##
+	## create mangleable directory names in $manglenames_shrdir
+	##
+        my $manglename_target = "$manglenames_shrdir/foo:bar";
+	mkdir($manglename_target, 0777);
 
 	my $conffile="$libdir/server.conf";
 
@@ -1101,6 +1118,9 @@ sub provision($$$$$$)
         # sending messages works, and that the %m sub works.
         message command = mv %s $shrdir/message.%m
 
+	# fruit:copyfile is a global option
+	fruit:copyfile = yes
+
 	# Begin extra options
 	$extra_options
 	# End extra options
@@ -1222,7 +1242,8 @@ sub provision($$$$$$)
 
 [vfs_fruit]
 	path = $shrdir
-	vfs objects = catia fruit streams_xattr
+	vfs objects = catia fruit streams_xattr acl_xattr
+	ea support = yes
 	fruit:ressource = file
 	fruit:metadata = netatalk
 	fruit:locking = netatalk
@@ -1230,6 +1251,10 @@ sub provision($$$$$$)
 
 [badname-tmp]
 	path = $badnames_shrdir
+	guest ok = yes
+
+[manglenames_share]
+	path = $manglenames_shrdir
 	guest ok = yes
 
 [dynamic_share]
@@ -1344,6 +1369,13 @@ domadmins:X:$gid_domadmins:
 	$ret{NSS_WRAPPER_MODULE_FN_PREFIX} = "winbind";
 	$ret{LOCAL_PATH} = "$shrdir";
         $ret{LOGDIR} = $logdir;
+
+	#
+	# Avoid hitting system krb5.conf -
+	# An env that needs Kerberos will reset this to the real
+	# value.
+	#
+	$ret{KRB5_CONFIG} = abs_path($prefix) . "/no_krb5.conf";
 
 	return \%ret;
 }

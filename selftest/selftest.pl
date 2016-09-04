@@ -27,6 +27,7 @@ use Cwd qw(abs_path);
 use lib "$RealBin";
 use Subunit;
 use SocketWrapper;
+use target::Samba;
 
 eval {
 require Time::HiRes;
@@ -505,6 +506,42 @@ sub write_clientconf($$$)
 	mkdir("$clientdir/ncalrpcdir", 0755);
 	umask $mask;
 
+	my $cadir = "$ENV{SRCDIR_ABS}/selftest/manage-ca/CA-samba.example.com";
+	my $cacert = "$cadir/Public/CA-samba.example.com-cert.pem";
+	my $cacrl_pem = "$cadir/Public/CA-samba.example.com-crl.pem";
+	my $ca_users_dir = "$cadir/Users";
+
+	if ( -d "$clientdir/pkinit" ) {
+	        unlink <$clientdir/pkinit/*>;
+	} else {
+	        mkdir("$clientdir/pkinit", 0700);
+	}
+
+	# each user has a USER-${USER_PRINCIPAL_NAME}-cert.pem and
+	# USER-${USER_PRINCIPAL_NAME}-private-key.pem symlink
+	# We make a copy here and make the certificated easily
+	# accessable in the client environment.
+	my $mask = umask;
+	umask 0077;
+	opendir USERS, "${ca_users_dir}" or die "Could not open dir '${ca_users_dir}': $!";
+	for my $d (readdir USERS) {
+		my $user_dir = "${ca_users_dir}/${d}";
+		next if ${d} =~ /^\./;
+		next if (! -d "${user_dir}");
+		opendir USER, "${user_dir}" or die "Could not open dir '${user_dir}': $!";
+		for my $l (readdir USER) {
+			my $user_link = "${user_dir}/${l}";
+			next if ${l} =~ /^\./;
+			next if (! -l "${user_link}");
+
+			my $dest = "${clientdir}/pkinit/${l}";
+			Samba::copy_file_content(${user_link}, ${dest});
+		}
+		closedir USER;
+	}
+	closedir USERS;
+	umask $mask;
+
 	open(CF, ">$conffile");
 	print CF "[global]\n";
 	print CF "\tnetbios name = client\n";
@@ -538,6 +575,9 @@ sub write_clientconf($$$)
 #We don't want to run 'speed' tests for very long
         torture:timelimit = 1
         winbind separator = /
+	tls cafile = ${cacert}
+	tls crlfile = ${cacrl_pem}
+	tls verify peer = no_check
 ";
 	close(CF);
 }
@@ -805,9 +845,7 @@ sub setup_env($$)
 
 	$option = "client" if $option eq "";
 
-	if ($envname eq "none") {
-		$testenv_vars = {};
-	} elsif (defined(get_running_env($envname))) {
+	if (defined(get_running_env($envname))) {
 		$testenv_vars = get_running_env($envname);
 		if (not $testenv_vars->{target}->check_env($testenv_vars)) {
 			print $testenv_vars->{target}->getlog_env($testenv_vars);
@@ -875,7 +913,6 @@ sub getlog_env($)
 sub check_env($)
 {
 	my ($envname) = @_;
-	return 1 if ($envname eq "none");
 	my $env = get_running_env($envname);
 	return $env->{target}->check_env($env);
 }

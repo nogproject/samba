@@ -2,12 +2,12 @@
 .\"     Title: sharesec
 .\"    Author: [see the "AUTHOR" section]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 04/15/2015
+.\"      Date: 07/06/2016
 .\"    Manual: User Commands
 .\"    Source: Samba 4.2
 .\"  Language: English
 .\"
-.TH "SHARESEC" "1" "04/15/2015" "Samba 4\&.2" "User Commands"
+.TH "SHARESEC" "1" "07/06/2016" "Samba 4\&.2" "User Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -101,53 +101,6 @@ Set security descriptor by providing ACL in SDDL format\&.
 .RS 4
 List a share acl in SDDL format\&.
 .RE
-.PP
-\-?|\-\-help
-.RS 4
-Print a summary of command line options\&.
-.RE
-.PP
-\-d|\-\-debuglevel=level
-.RS 4
-\fIlevel\fR
-is an integer from 0 to 10\&. The default value if this parameter is not specified is 0\&.
-.sp
-The higher this value, the more detail will be logged to the log files about the activities of the server\&. At level 0, only critical errors and serious warnings will be logged\&. Level 1 is a reasonable level for day\-to\-day running \- it generates a small amount of information about operations carried out\&.
-.sp
-Levels above 1 will generate considerable amounts of log data, and should only be used when investigating a problem\&. Levels above 3 are designed for use only by developers and generate HUGE amounts of log data, most of which is extremely cryptic\&.
-.sp
-Note that specifying this parameter here will override the
-\m[blue]\fBlog level\fR\m[]
-parameter in the
-smb\&.conf
-file\&.
-.RE
-.PP
-\-V|\-\-version
-.RS 4
-Prints the program version number\&.
-.RE
-.PP
-\-s|\-\-configfile=<configuration file>
-.RS 4
-The file specified contains the configuration details required by the server\&. The information in this file includes server\-specific information such as what printcap file to use, as well as descriptions of all the services that the server is to provide\&. See
-smb\&.conf
-for more information\&. The default configuration file name is determined at compile time\&.
-.RE
-.PP
-\-l|\-\-log\-basename=logdirectory
-.RS 4
-Base directory name for log/debug files\&. The extension
-\fB"\&.progname"\fR
-will be appended (e\&.g\&. log\&.smbclient, log\&.smbd, etc\&.\&.\&.)\&. The log file is never removed by the client\&.
-.RE
-.PP
-\-\-option=<name>=<value>
-.RS 4
-Set the
-\fBsmb.conf\fR(5)
-option "<name>" to value "<value>" from the command line\&. This overrides compiled\-in defaults and options read from the configuration file\&.
-.RE
 .SH "ACL FORMAT"
 .PP
 The format of an ACL is one or more ACL entries separated by either commas or newlines\&. An ACL entry is one of the following:
@@ -168,7 +121,7 @@ The format of an ACL is one or more ACL entries separated by either commas or ne
 .PP
 The revision of the ACL specifies the internal Windows NT ACL revision for the security descriptor\&. If not specified it defaults to 1\&. Using values other than 1 may cause strange behaviour\&.
 .PP
-The owner and group specify the owner and group SIDs for the object\&. If a SID in the format S\-1\-x\-y\-z is specified this is used, otherwise the name specified is resolved using the server on which the file or directory resides\&.
+The owner and group specify the owner and group SIDs for the object\&. Share ACLs do not specify an owner or a group, so these fields are empty\&.
 .PP
 ACLs specify permissions granted to the SID\&. This SID can be specified in S\-1\-x\-y\-z format or as a name in which case it is resolved against the server on which the file or directory resides\&. The type, flags and mask values determine the type of access granted to the SID\&.
 .PP
@@ -323,10 +276,11 @@ List all ACEs for
 .nf
 	host:~ # sharesec share \-v
 	REVISION:1
-	OWNER:(NULL SID)
-	GROUP:(NULL SID)
-	ACL:S\-1\-1\-0:ALLOWED/0/0x101f01ff
-	ACL:S\-1\-5\-21\-1866488690\-1365729215\-3963860297\-17724:ALLOWED/0/FULL
+	CONTROL:SR|DP
+	OWNER:
+	GROUP:
+	ACL:S\-1\-1\-0:ALLOWED/0x0/FULL
+	ACL:S\-1\-5\-21\-1866488690\-1365729215\-3963860297\-17724:ALLOWED/0x0/FULL
 	
 .fi
 .if n \{\

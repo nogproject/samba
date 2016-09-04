@@ -185,9 +185,10 @@ bool get_delete_on_close_token(struct share_mode_lock *lck,
 				uint32_t name_hash,
 				const struct security_token **pp_nt_tok,
 				const struct security_unix_token **pp_tok);
+void reset_delete_on_close_lck(files_struct *fsp,
+			       struct share_mode_lock *lck);
 void set_delete_on_close_lck(files_struct *fsp,
 			struct share_mode_lock *lck,
-			bool delete_on_close,
 			const struct security_token *nt_tok,
 			const struct security_unix_token *tok);
 bool set_delete_on_close(files_struct *fsp, bool delete_on_close,
@@ -201,7 +202,8 @@ int share_mode_forall(int (*fn)(struct file_id fid,
 				const struct share_mode_data *data,
 				void *private_data),
 		      void *private_data);
-int share_entry_forall(int (*fn)(const struct share_mode_entry *, const char *,
+int share_entry_forall(int (*fn)(const struct share_mode_entry *,
+				 const char *, const char *,
 				 const char *, void *),
 		      void *private_data);
 bool share_mode_cleanup_disconnected(struct file_id id,

@@ -519,16 +519,36 @@ bool lpcfg_parm_bool(struct loadparm_context *lp_ctx,
 }
 
 
+/* this is used to prevent lots of mallocs of size 1 */
+static const char lpcfg_string_emtpy[] = "";
+
+/**
+ Free a string value.
+**/
+void lpcfg_string_free(char **s)
+{
+	if (s == NULL) {
+		return;
+	}
+	if (*s == lpcfg_string_emtpy) {
+		*s = NULL;
+		return;
+	}
+	TALLOC_FREE(*s);
+}
+
 /**
  * Set a string value, deallocating any existing space, and allocing the space
  * for the string
  */
 bool lpcfg_string_set(TALLOC_CTX *mem_ctx, char **dest, const char *src)
 {
-	talloc_free(*dest);
+	lpcfg_string_free(dest);
 
-	if (src == NULL)
-		src = "";
+	if ((src == NULL) || (*src == '\0')) {
+		*dest = discard_const_p(char, lpcfg_string_emtpy);
+		return true;
+	}
 
 	*dest = talloc_strdup(mem_ctx, src);
 	if ((*dest) == NULL) {
@@ -545,10 +565,12 @@ bool lpcfg_string_set(TALLOC_CTX *mem_ctx, char **dest, const char *src)
  */
 bool lpcfg_string_set_upper(TALLOC_CTX *mem_ctx, char **dest, const char *src)
 {
-	talloc_free(*dest);
+	lpcfg_string_free(dest);
 
-	if (src == NULL)
-		src = "";
+	if ((src == NULL) || (*src == '\0')) {
+		*dest = discard_const_p(char, lpcfg_string_emtpy);
+		return true;
+	}
 
 	*dest = strupper_talloc(mem_ctx, src);
 	if ((*dest) == NULL) {
@@ -822,9 +844,8 @@ void set_param_opt(TALLOC_CTX *mem_ctx,
 				   overridden */
 				return;
 			}
-			TALLOC_FREE(opt->value);
 			TALLOC_FREE(opt->list);
-			opt->value = talloc_strdup(opt, opt_value);
+			lpcfg_string_set(opt, &opt->value, opt_value);
 			opt->priority = priority;
 			not_added = false;
 			break;
@@ -836,16 +857,10 @@ void set_param_opt(TALLOC_CTX *mem_ctx,
 		if (new_opt == NULL) {
 			smb_panic("OOM");
 		}
-
-		new_opt->key = talloc_strdup(new_opt, opt_name);
-		if (new_opt->key == NULL) {
-			smb_panic("talloc_strdup failed");
-		}
-
-		new_opt->value = talloc_strdup(new_opt, opt_value);
-		if (new_opt->value == NULL) {
-			smb_panic("talloc_strdup failed");
-		}
+		new_opt->key = NULL;
+		lpcfg_string_set(new_opt, &new_opt->key, opt_name);
+		new_opt->value = NULL;
+		lpcfg_string_set(new_opt, &new_opt->value, opt_value);
 
 		new_opt->list = NULL;
 		new_opt->priority = priority;
@@ -2384,13 +2399,16 @@ struct loadparm_context *loadparm_init(TALLOC_CTX *mem_ctx)
 		if ((parm_table[i].type == P_STRING ||
 		     parm_table[i].type == P_USTRING) &&
 		    !(lp_ctx->flags[i] & FLAG_CMDLINE)) {
+			TALLOC_CTX *parent_mem;
 			char **r;
 			if (parm_table[i].p_class == P_LOCAL) {
+				parent_mem = lp_ctx->sDefault;
 				r = (char **)(((char *)lp_ctx->sDefault) + parm_table[i].offset);
 			} else {
+				parent_mem = lp_ctx->globals;
 				r = (char **)(((char *)lp_ctx->globals) + parm_table[i].offset);
 			}
-			*r = talloc_strdup(lp_ctx, "");
+			lpcfg_string_set(parent_mem, r, "");
 		}
 	}
 
@@ -2476,6 +2494,8 @@ struct loadparm_context *loadparm_init(TALLOC_CTX *mem_ctx)
 	lpcfg_do_global_parameter(lp_ctx, "server max protocol", "SMB3");
 	lpcfg_do_global_parameter(lp_ctx, "client min protocol", "CORE");
 	lpcfg_do_global_parameter(lp_ctx, "client max protocol", "default");
+	lpcfg_do_global_parameter(lp_ctx, "client ipc min protocol", "default");
+	lpcfg_do_global_parameter(lp_ctx, "client ipc max protocol", "default");
 	lpcfg_do_global_parameter(lp_ctx, "security", "AUTO");
 	lpcfg_do_global_parameter(lp_ctx, "EncryptPasswords", "True");
 	lpcfg_do_global_parameter(lp_ctx, "ReadRaw", "True");
@@ -2491,7 +2511,10 @@ struct loadparm_context *loadparm_init(TALLOC_CTX *mem_ctx)
 	lpcfg_do_global_parameter(lp_ctx, "ClientNTLMv2Auth", "True");
 	lpcfg_do_global_parameter(lp_ctx, "LanmanAuth", "False");
 	lpcfg_do_global_parameter(lp_ctx, "NTLMAuth", "True");
+	lpcfg_do_global_parameter(lp_ctx, "RawNTLMv2Auth", "False");
 	lpcfg_do_global_parameter(lp_ctx, "client use spnego principal", "False");
+
+	lpcfg_do_global_parameter(lp_ctx, "allow dcerpc auth level connect", "False");
 
 	lpcfg_do_global_parameter(lp_ctx, "UnixExtensions", "True");
 
@@ -2515,6 +2538,7 @@ struct loadparm_context *loadparm_init(TALLOC_CTX *mem_ctx)
 	lpcfg_do_global_parameter(lp_ctx, "template homedir", "/home/%D/%U");
 
 	lpcfg_do_global_parameter(lp_ctx, "client signing", "default");
+	lpcfg_do_global_parameter(lp_ctx, "client ipc signing", "default");
 	lpcfg_do_global_parameter(lp_ctx, "server signing", "default");
 
 	lpcfg_do_global_parameter(lp_ctx, "use spnego", "True");
@@ -2535,9 +2559,11 @@ struct loadparm_context *loadparm_init(TALLOC_CTX *mem_ctx)
 	lpcfg_do_global_parameter(lp_ctx, "min wins ttl", "21600");
 
 	lpcfg_do_global_parameter(lp_ctx, "tls enabled", "True");
+	lpcfg_do_global_parameter(lp_ctx, "tls verify peer", "as_strict_as_possible");
 	lpcfg_do_global_parameter(lp_ctx, "tls keyfile", "tls/key.pem");
 	lpcfg_do_global_parameter(lp_ctx, "tls certfile", "tls/cert.pem");
 	lpcfg_do_global_parameter(lp_ctx, "tls cafile", "tls/ca.pem");
+	lpcfg_do_global_parameter(lp_ctx, "tls priority", "NORMAL:-VERS-SSL3.0");
 	lpcfg_do_global_parameter(lp_ctx, "prefork children:smb", "4");
 
 	lpcfg_do_global_parameter(lp_ctx, "rndc command", "/usr/sbin/rndc");
@@ -2667,6 +2693,8 @@ struct loadparm_context *loadparm_init(TALLOC_CTX *mem_ctx)
 	lpcfg_do_global_parameter(lp_ctx, "ldap debug threshold", "10");
 
 	lpcfg_do_global_parameter(lp_ctx, "client ldap sasl wrapping", "sign");
+
+	lpcfg_do_global_parameter(lp_ctx, "ldap server require strong auth", "yes");
 
 	lpcfg_do_global_parameter(lp_ctx, "follow symlinks", "yes");
 
@@ -3158,6 +3186,39 @@ int lpcfg_client_max_protocol(struct loadparm_context *lp_ctx)
 	return client_max_protocol;
 }
 
+int lpcfg_client_ipc_min_protocol(struct loadparm_context *lp_ctx)
+{
+	int client_ipc_min_protocol = lpcfg__client_ipc_min_protocol(lp_ctx);
+	if (client_ipc_min_protocol == PROTOCOL_DEFAULT) {
+		client_ipc_min_protocol = lpcfg_client_min_protocol(lp_ctx);
+	}
+	if (client_ipc_min_protocol < PROTOCOL_NT1) {
+		return PROTOCOL_NT1;
+	}
+	return client_ipc_min_protocol;
+}
+
+int lpcfg_client_ipc_max_protocol(struct loadparm_context *lp_ctx)
+{
+	int client_ipc_max_protocol = lpcfg__client_ipc_max_protocol(lp_ctx);
+	if (client_ipc_max_protocol == PROTOCOL_DEFAULT) {
+		return PROTOCOL_LATEST;
+	}
+	if (client_ipc_max_protocol < PROTOCOL_NT1) {
+		return PROTOCOL_NT1;
+	}
+	return client_ipc_max_protocol;
+}
+
+int lpcfg_client_ipc_signing(struct loadparm_context *lp_ctx)
+{
+	int client_ipc_signing = lpcfg__client_ipc_signing(lp_ctx);
+	if (client_ipc_signing == SMB_SIGNING_DEFAULT) {
+		return SMB_SIGNING_REQUIRED;
+	}
+	return client_ipc_signing;
+}
+
 bool lpcfg_server_signing_allowed(struct loadparm_context *lp_ctx, bool *mandatory)
 {
 	bool allowed = true;
@@ -3189,11 +3250,15 @@ bool lpcfg_server_signing_allowed(struct loadparm_context *lp_ctx, bool *mandato
 	case SMB_SIGNING_REQUIRED:
 		*mandatory = true;
 		break;
+	case SMB_SIGNING_DESIRED:
 	case SMB_SIGNING_IF_REQUIRED:
 		break;
-	case SMB_SIGNING_DEFAULT:
 	case SMB_SIGNING_OFF:
 		allowed = false;
+		break;
+	case SMB_SIGNING_DEFAULT:
+	case SMB_SIGNING_IPC_DEFAULT:
+		smb_panic(__location__);
 		break;
 	}
 
