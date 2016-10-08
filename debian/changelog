@@ -1,4 +1,4 @@
-samba (2:4.2.14+dfsg-0+deb8u1) UNRELEASED; urgency=high
+samba (2:4.2.14+dfsg-0+deb8u1) jessie; urgency=high
 
   * New upstream release.
    + Fixes CVE-2016-2119: Client side SMB2/3 required signing can be downgraded.
