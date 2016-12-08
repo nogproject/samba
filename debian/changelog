@@ -1,8 +1,8 @@
-samba (2:4.2.14+dfsg-0+deb8u2) UNRELEASED; urgency=medium
+samba (2:4.2.14+dfsg-0+deb8u2) jessie; urgency=medium
 
   * Fix smbclient compatibility with Windows 10 (Closes: #820794)
 
- -- Mathieu Parent <sathieu@debian.org>  Wed, 07 Dec 2016 21:44:28 +0100
+ -- Mathieu Parent <sathieu@debian.org>  Thu, 08 Dec 2016 21:12:25 +0100
 
 samba (2:4.2.14+dfsg-0+deb8u1) jessie; urgency=high
 
