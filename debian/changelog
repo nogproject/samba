@@ -1,5 +1,12 @@
-samba (2:4.2.14+dfsg-0+deb8u2) jessie; urgency=medium
+samba (2:4.2.14+dfsg-0+deb8u2) jessie-security; urgency=high
 
+  * This is a security release in order to address the following defects:
+    - CVE-2016-2123 (Samba NDR Parsing ndr_pull_dnsp_name Heap-based Buffer
+      Overflow Remote Code Execution Vulnerability).
+    -  CVE-2016-2125 (Unconditional privilege delegation to Kerberos servers in
+      trusted realms).
+    -  CVE-2016-2126 (Flaws in Kerberos PAC validation can trigger privilege
+       elevation).
   * Fix smbclient compatibility with Windows 10 (Closes: #820794)
 
  -- Mathieu Parent <sathieu@debian.org>  Thu, 08 Dec 2016 21:12:25 +0100
