@@ -1700,15 +1700,16 @@ static struct smb_Dir *OpenDir_fsp(TALLOC_CTX *mem_ctx, connection_struct *conn,
 	struct smbd_server_connection *sconn = conn->sconn;
 
 	if (!dirp) {
-		return NULL;
+		goto fail;
 	}
 
-	dirp->dir = SMB_VFS_OPENDIR(conn, smb_dname, mask, attr);
+	if (!fsp->is_directory) {
+		errno = EBADF;
+		goto fail;
+	}
 
-	if (!dirp->dir) {
-		DEBUG(5,("OpenDir: Can't open %s. %s\n",
-			smb_dname->base_name,
-			strerror(errno) ));
+	if (fsp->fh->fd == -1) {
+		errno = EBADF;
 		goto fail;
 	}
 
@@ -1726,18 +1727,16 @@ static struct smb_Dir *OpenDir_fsp(TALLOC_CTX *mem_ctx, connection_struct *conn,
 	}
 	talloc_set_destructor(dirp, smb_Dir_destructor);
 
-	if (fsp->is_directory && fsp->fh->fd != -1) {
-		dirp->dir = SMB_VFS_FDOPENDIR(fsp, mask, attr);
-		if (dirp->dir != NULL) {
-			dirp->fsp = fsp;
-		} else {
-			DEBUG(10,("OpenDir_fsp: SMB_VFS_FDOPENDIR on %s returned "
-				"NULL (%s)\n",
-				dirp->dir_path,
-				strerror(errno)));
-			if (errno != ENOSYS) {
-				return NULL;
-			}
+	dirp->dir = SMB_VFS_FDOPENDIR(fsp, mask, attr);
+	if (dirp->dir != NULL) {
+		dirp->fsp = fsp;
+	} else {
+		DEBUG(10,("OpenDir_fsp: SMB_VFS_FDOPENDIR on %s returned "
+			"NULL (%s)\n",
+			dirp->dir_path,
+			strerror(errno)));
+		if (errno != ENOSYS) {
+			return NULL;
 		}
 	}
 
