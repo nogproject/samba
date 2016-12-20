@@ -1595,19 +1595,11 @@ static struct smb_Dir *OpenDir_internal(TALLOC_CTX *mem_ctx,
 		return NULL;
 	}
 
-	dirp->conn = conn;
-	dirp->name_cache_size = lp_directory_name_cache_size(SNUM(conn));
-
 	dirp->dir_path = talloc_strdup(dirp, name);
 	if (!dirp->dir_path) {
 		errno = ENOMEM;
 		goto fail;
 	}
-
-	if (sconn && !sconn->using_smb2) {
-		sconn->searches.dirhandles_open++;
-	}
-	talloc_set_destructor(dirp, smb_Dir_destructor);
 
 	dirp->dir = SMB_VFS_OPENDIR(conn, dirp->dir_path, mask, attr);
 	if (!dirp->dir) {
@@ -1615,6 +1607,14 @@ static struct smb_Dir *OpenDir_internal(TALLOC_CTX *mem_ctx,
 			 strerror(errno) ));
 		goto fail;
 	}
+
+	dirp->conn = conn;
+	dirp->name_cache_size = lp_directory_name_cache_size(SNUM(conn));
+
+	if (sconn && !sconn->using_smb2) {
+		sconn->searches.dirhandles_open++;
+	}
+	talloc_set_destructor(dirp, smb_Dir_destructor);
 
 	return dirp;
 
@@ -1649,6 +1649,15 @@ static struct smb_Dir *OpenDir_fsp(TALLOC_CTX *mem_ctx, connection_struct *conn,
 
 	if (!dirp) {
 		return NULL;
+	}
+
+	dirp->dir = SMB_VFS_OPENDIR(conn, smb_dname, mask, attr);
+
+	if (!dirp->dir) {
+		DEBUG(5,("OpenDir: Can't open %s. %s\n",
+			smb_dname->base_name,
+			strerror(errno) ));
+		goto fail;
 	}
 
 	dirp->conn = conn;
