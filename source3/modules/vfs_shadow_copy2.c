@@ -1979,7 +1979,8 @@ static int shadow_copy2_connect(struct vfs_handle_struct *handle,
 		config->basedir = config->mount_point;
 	}
 
-	if (strlen(config->basedir) != strlen(handle->conn->connectpath)) {
+	if (config->rel_connectpath == NULL &&
+	    strlen(config->basedir) < strlen(handle->conn->connectpath)) {
 		config->rel_connectpath = talloc_strdup(config,
 			handle->conn->connectpath + strlen(config->basedir));
 		if (config->rel_connectpath == NULL) {
