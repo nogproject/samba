@@ -50,6 +50,9 @@ struct shadow_copy2_config {
 	char *mount_point;
 	char *rel_connectpath; /* share root, relative to the basedir */
 	char *snapshot_basepath; /* the absolute version of snapdir */
+	char *shadow_cwd; /* Absolute $cwd path. */
+	/* Absolute connectpath - can vary depending on $cwd. */
+	char *shadow_connectpath;
 };
 
 static bool shadow_copy2_find_slashes(TALLOC_CTX *mem_ctx, const char *str,
