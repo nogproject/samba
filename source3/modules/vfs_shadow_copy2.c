@@ -53,6 +53,8 @@ struct shadow_copy2_config {
 	char *shadow_cwd; /* Absolute $cwd path. */
 	/* Absolute connectpath - can vary depending on $cwd. */
 	char *shadow_connectpath;
+	/* malloc'ed realpath return. */
+	char *shadow_realpath;
 };
 
 static bool shadow_copy2_find_slashes(TALLOC_CTX *mem_ctx, const char *str,
@@ -2057,6 +2059,13 @@ static const char *shadow_copy2_connectpath(struct vfs_handle_struct *handle,
 		goto done;
 	}
 
+	/*
+	 * SMB_VFS_NEXT_REALPATH returns a malloc'ed string.
+	 * Don't leak memory.
+	 */
+	SAFE_FREE(config->shadow_realpath);
+	config->shadow_realpath = result;
+
 	DEBUG(10,("connect path is [%s]\n", result));
 
 done:
@@ -2103,6 +2112,12 @@ static uint64_t shadow_copy2_disk_free(vfs_handle_struct *handle,
 	return ret;
 }
 
+static int shadow_copy2_config_destructor(struct shadow_copy2_config *config)
+{
+	SAFE_FREE(config->shadow_realpath);
+	return 0;
+}
+
 static int shadow_copy2_connect(struct vfs_handle_struct *handle,
 				const char *service, const char *user)
 {
@@ -2129,6 +2144,8 @@ static int shadow_copy2_connect(struct vfs_handle_struct *handle,
 		errno = ENOMEM;
 		return -1;
 	}
+
+	talloc_set_destructor(config, shadow_copy2_config_destructor);
 
 	gmt_format = lp_parm_const_string(SNUM(handle->conn),
 					  "shadow", "format",
