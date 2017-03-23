@@ -1,3 +1,12 @@
+samba (2:4.2.14+dfsg-0+deb8u4) jessie-security; urgency=high
+
+  * Non-maintainer upload by the Security Team.
+  * Add additional changes required for the CVE-2017-2619 fix
+    - s3/smbd: re-open directory after dptr_CloseDir()
+    - s4/torture: add SMB2_FIND tests with SMB2_CONTINUE_FLAG_REOPEN flag
+
+ -- Salvatore Bonaccorso <carnil@debian.org>  Tue, 21 Mar 2017 20:57:54 +0100
+
 samba (2:4.2.14+dfsg-0+deb8u3) jessie-security; urgency=high
 
   * This is a security release in order to address the following defects:
