@@ -2146,7 +2146,7 @@ static int shadow_copy2_get_real_filename(struct vfs_handle_struct *handle,
 static const char *shadow_copy2_connectpath(struct vfs_handle_struct *handle,
 					    const char *fname)
 {
-	time_t timestamp;
+	time_t timestamp = 0;
 	char *stripped = NULL;
 	char *tmp = NULL;
 	char *result = NULL;
