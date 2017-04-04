@@ -1290,6 +1290,8 @@ static void manage_gensec_request(enum stdio_helper_mode stdio_helper_mode,
 
 	TALLOC_CTX *mem_ctx;
 
+	mem_ctx = talloc_named(NULL, 0, "manage_gensec_request internal mem_ctx");
+
 	if (*private1) {
 		state = (struct gensec_ntlm_state *)*private1;
 	} else {
@@ -1307,6 +1309,7 @@ static void manage_gensec_request(enum stdio_helper_mode stdio_helper_mode,
 	if (strlen(buf) < 2) {
 		DEBUG(1, ("query [%s] invalid", buf));
 		x_fprintf(x_stdout, "BH Query invalid\n");
+		talloc_free(mem_ctx);
 		return;
 	}
 
@@ -1316,9 +1319,10 @@ static void manage_gensec_request(enum stdio_helper_mode stdio_helper_mode,
 			talloc_free(want_feature_list);
 			want_feature_list = talloc_strndup(state, buf+3, strlen(buf)-3);
 			x_fprintf(x_stdout, "OK\n");
+			talloc_free(mem_ctx);
 			return;
 		}
-		in = base64_decode_data_blob(buf + 3);
+		in = base64_decode_data_blob_talloc(mem_ctx, buf + 3);
 	} else {
 		in = data_blob(NULL, 0);
 	}
@@ -1331,7 +1335,7 @@ static void manage_gensec_request(enum stdio_helper_mode stdio_helper_mode,
 	} else if ( (strncmp(buf, "OK", 2) == 0)) {
 		/* Just return BH, like ntlm_auth from Samba 3 does. */
 		x_fprintf(x_stdout, "BH Command expected\n");
-		data_blob_free(&in);
+		talloc_free(mem_ctx);
 		return;
 	} else if ( (strncmp(buf, "TT ", 3) != 0) &&
 		    (strncmp(buf, "KK ", 3) != 0) &&
@@ -1343,11 +1347,9 @@ static void manage_gensec_request(enum stdio_helper_mode stdio_helper_mode,
 		    (strncmp(buf, "GF", 2) != 0)) {
 		DEBUG(1, ("SPNEGO request [%s] invalid prefix\n", buf));
 		x_fprintf(x_stdout, "BH SPNEGO request invalid prefix\n");
-		data_blob_free(&in);
+		talloc_free(mem_ctx);
 		return;
 	}
-
-	mem_ctx = talloc_named(NULL, 0, "manage_gensec_request internal mem_ctx");
 
 	/* setup gensec */
 	if (!(state->gensec_state)) {
@@ -1478,7 +1480,6 @@ static void manage_gensec_request(enum stdio_helper_mode stdio_helper_mode,
 					     state->set_password,
 					     CRED_SPECIFIED);
 		x_fprintf(x_stdout, "OK\n");
-		data_blob_free(&in);
 		talloc_free(mem_ctx);
 		return;
 	}
@@ -1510,10 +1511,12 @@ static void manage_gensec_request(enum stdio_helper_mode stdio_helper_mode,
 		neg_flags = gensec_ntlmssp_neg_flags(state->gensec_state);
 		if (neg_flags == 0) {
 			x_fprintf(x_stdout, "BH\n");
+			talloc_free(mem_ctx);
 			return;
 		}
 
 		x_fprintf(x_stdout, "GF 0x%08x\n", neg_flags);
+		talloc_free(mem_ctx);
 		return;
 	}
 
