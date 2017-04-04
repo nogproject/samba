@@ -22,3 +22,4 @@ CVE-2018-14629-v4-5.patch
 CVE-2018-16841-master.patch
 CVE-2018-16851-master.patch
 fix-rmdir.patch
+s3-ntlm_auth-fix-memory-leak-in-manage_gensec_reques.patch
