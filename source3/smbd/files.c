@@ -552,9 +552,7 @@ void file_free(struct smb_request *req, files_struct *fsp)
 	 * Clear all possible chained fsp
 	 * pointers in the SMB2 request queue.
 	 */
-	if (req != NULL && req->smb2req) {
-		remove_smb2_chained_fsp(fsp);
-	}
+	remove_smb2_chained_fsp(fsp);
 
 	/* Drop all remaining extensions. */
 	vfs_remove_all_fsp_extensions(fsp);
@@ -783,14 +781,6 @@ NTSTATUS fsp_set_smb_fname(struct files_struct *fsp,
 const struct GUID *fsp_client_guid(const files_struct *fsp)
 {
 	return &fsp->conn->sconn->client->connections->smb2.client.guid;
-}
-
-uint32_t fsp_lease_type(struct files_struct *fsp)
-{
-	if (fsp->oplock_type == LEASE_OPLOCK) {
-		return fsp->lease->lease.lease_state;
-	}
-	return map_oplock_to_lease_type(fsp->oplock_type);
 }
 
 size_t fsp_fullbasepath(struct files_struct *fsp, char *buf, size_t buflen)
