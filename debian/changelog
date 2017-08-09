@@ -1,3 +1,10 @@
+samba (2:4.2.14+dfsg-0+deb8u7+b1) stable; urgency=high
+
+  * Added samba-vfs-disable-chmod-acl.
+  * Version matches official Debian binary package.
+
+ -- Steffen Prohaska <prohaska@zib.de>  Wed, 09 Aug 2017 14:55:29 +0200
+
 samba (2:4.2.14+dfsg-0+deb8u7) jessie-security; urgency=high
 
   * This is a security release in order to address the following defect:
