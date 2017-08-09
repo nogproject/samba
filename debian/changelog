@@ -1,3 +1,11 @@
+samba (2:4.2.14+dfsg-0+deb8u7+bcpfs2) stable; urgency=high
+
+  * New option "inherit posix acls".
+  * New VFS module "disable_chmod" to prevent chmod.
+  * Version derived from official Debian source package.
+
+ -- Steffen Prohaska <prohaska@zib.de>  Thu, 10 Aug 2017 15:38:33 +0200
+
 samba (2:4.5.12+dfsg-2) stretch; urgency=high
 
   * This is a security release in order to address the following defects:
