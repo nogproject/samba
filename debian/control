@@ -1,7 +1,7 @@
 Source: samba
 Section: net
 Priority: optional
-Maintainer: Debian Samba Maintainers <pkg-samba-maint@lists.alioth.debian.org>
+Maintainer: Steffen Prohaska <prohaska@zib.de>
 Uploaders: Steve Langasek <vorlon@debian.org>,
            Christian Perrier <bubulle@debian.org>,
            Jelmer Vernooij <jelmer@debian.org>,
@@ -611,3 +611,11 @@ Description: clustered database to store temporary data
   * CTDB supports a system of application specific management scripts, allowing
     applications that depend on network or filesystem resources to be managed in
     a highly available manner on a cluster.
+
+Package: samba-vfs-disable-chmod-acl
+Architecture: any
+Depends: samba (>= 2:4.2.0), samba (<< 2:4.3.0)
+Enhances: samba
+Description: Samba Virtual FileSystem VFS module to preserve Kernel default POSIX ACLs
+ This package contains a SAMBA VFS module that disables chmod of new files and
+ directories in order to preserve the POSIX ACLs as propagated by the Kernel.
