@@ -512,3 +512,11 @@ bld.SAMBA3_MODULE('vfs_vxfs',
                  init_function='',
                  internal_module=bld.SAMBA3_IS_STATIC_MODULE('vfs_vxfs'),
                  enabled=bld.SAMBA3_IS_ENABLED_MODULE('vfs_vxfs'))
+
+bld.SAMBA3_MODULE('vfs_disable_chmod',
+                 subsystem='vfs',
+                 source='vfs_disable_chmod.c',
+                 deps='',
+                 init_function='',
+                 internal_module=bld.SAMBA3_IS_STATIC_MODULE('vfs_disable_chmod'),
+                 enabled=bld.SAMBA3_IS_ENABLED_MODULE('vfs_disable_chmod'))
