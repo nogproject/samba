@@ -621,3 +621,13 @@ Enhances: samba
 Description: Samba Virtual FileSystem VFS module to disable chmod
  The package contains a Samba VFS module that disables chmod calls by
  pretending that they were successful without touching the filesystem.
+
+Package: samba-vfs-disable-setfacl
+Architecture: any
+Depends: samba (>= 2:4.2.0), samba (<< 2:4.3.0)
+Enhances: samba
+Description: Samba Virtual FileSystem VFS module to disable POSIX ACL changes
+ The package contains a Samba VFS module that prevents changes to POSIX ACLs by
+ pretending that sys_acl_set_* and sys_acl_delete_* VFS calls were successful
+ without touching the filesystem.  The package should be used together with
+ samba-vfs-disable-chmod.
