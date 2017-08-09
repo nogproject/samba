@@ -613,3 +613,11 @@ Description: clustered database to store temporary data
   * CTDB supports a system of application specific management scripts, allowing
     applications that depend on network or filesystem resources to be managed in
     a highly available manner on a cluster.
+
+Package: samba-vfs-disable-chmod
+Architecture: any
+Depends: samba (>= 2:4.2.0), samba (<< 2:4.3.0)
+Enhances: samba
+Description: Samba Virtual FileSystem VFS module to disable chmod
+ The package contains a Samba VFS module that disables chmod calls by
+ pretending that they were successful without touching the filesystem.
