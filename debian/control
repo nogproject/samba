@@ -1,7 +1,7 @@
 Source: samba
 Section: net
 Priority: optional
-Maintainer: Debian Samba Maintainers <pkg-samba-maint@lists.alioth.debian.org>
+Maintainer: Steffen Prohaska <prohaska@zib.de>
 Uploaders: Steve Langasek <vorlon@debian.org>,
            Jelmer Vernooĳ <jelmer@debian.org>,
            Ivo De Decker <ivodd@debian.org>,
@@ -111,6 +111,8 @@ Description: SMB/CIFS file, print, and login server for Unix
  .
  This package is not required for connecting to existing SMB/CIFS servers
  (see smbclient) or for mounting remote filesystems (see cifs-utils).
+ .
+ This version contains a patch to inherit default POSIX ACLs.
 
 Package: samba-libs
 Pre-Depends: ${misc:Pre-Depends}
