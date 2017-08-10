@@ -5118,7 +5118,7 @@ static NTSTATUS create_file_unixpath(connection_struct *conn,
 			if (!NT_STATUS_IS_OK(status)) {
 				goto fail;
 			}
-		} else if (lp_inherit_acls(SNUM(conn))) {
+		} else if (lp_inherit_acls(SNUM(conn)) && !lp_inherit_posix_acls(SNUM(conn))) {
 			/* Inherit from parent. Errors here are not fatal. */
 			status = inherit_new_acl(fsp);
 			if (!NT_STATUS_IS_OK(status)) {
