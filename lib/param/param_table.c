@@ -1052,6 +1052,15 @@ struct parm_struct parm_table[] = {
 		.flags		= FLAG_ADVANCED | FLAG_SHARE,
 	},
 	{
+		.label		= "inherit posix acls",
+		.type		= P_BOOL,
+		.p_class	= P_LOCAL,
+		.offset		= LOCAL_VAR(inherit_posix_acls),
+		.special	= NULL,
+		.enum_list	= NULL,
+		.flags		= FLAG_ADVANCED | FLAG_SHARE,
+	},
+	{
 		.label		= "inherit owner",
 		.type		= P_BOOL,
 		.p_class	= P_LOCAL,

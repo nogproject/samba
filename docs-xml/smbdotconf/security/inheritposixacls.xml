@@ -1,0 +1,13 @@
+<samba:parameter name="inherit posix acls"
+                 context="S"
+                 type="boolean"
+                 xmlns:samba="http://www.samba.org/samba/DTD/samba-doc">
+<description>
+    <para>This parameter can be used to preserve default POSIX ACL propagation
+    when 'inherit acls = yes'.  'inherit posix acls = yes' tells Samba to
+    leave the ACL as created by the Kernel.
+</para>
+</description>
+
+<value type="default">no</value>
+</samba:parameter>
