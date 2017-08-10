@@ -220,6 +220,7 @@ static struct loadparm_service sDefault =
 	.blocking_locks = true,
 	.inherit_permissions = false,
 	.inherit_acls = false,
+	.inherit_posix_acls = false,
 	.inherit_owner = false,
 	.msdfs_root = false,
 	.msdfs_shuffle_referrals = false,
