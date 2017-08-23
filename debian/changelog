@@ -1,3 +1,9 @@
+samba (2:4.2.14+dfsg-0+deb8u7+bcpfs3) stable; urgency=high
+
+  * New VFS module "disable_setfacl" to prevent POSIX ACL changes.
+
+ -- Steffen Prohaska <prohaska@zib.de>  Wed, 23 Aug 2017 10:47:54 +0200
+
 samba (2:4.2.14+dfsg-0+deb8u7+bcpfs2) stable; urgency=high
 
   * New option "inherit posix acls".
