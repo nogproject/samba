@@ -1627,6 +1627,7 @@ main() {
 	default_shared_modules.extend(TO_LIST('vfs_snapper'))
 
     default_shared_modules.extend(TO_LIST('vfs_disable_chmod'))
+    default_shared_modules.extend(TO_LIST('vfs_disable_setfacl'))
 
     explicit_shared_modules = TO_LIST(Options.options.shared_modules, delimiter=',')
     explicit_static_modules = TO_LIST(Options.options.static_modules, delimiter=',')
