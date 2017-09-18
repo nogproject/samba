@@ -1,3 +1,9 @@
+samba (2:4.5.8+dfsg-2+deb9u1+bcpfs4) stable; urgency=high
+
+  * Rebased to Debian Samba 2:4.5.8+dfsg-2+deb9u1.
+
+ -- Steffen Prohaska <prohaska@zib.de>  Mon, 18 Sep 2017 10:09:13 +0200
+
 samba (2:4.2.14+dfsg-0+deb8u7+bcpfs3) stable; urgency=high
 
   * New VFS module "disable_setfacl" to prevent POSIX ACL changes.
