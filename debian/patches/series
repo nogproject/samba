@@ -17,3 +17,6 @@ fix_kill_path_in_units.patch
 nmbd-requires-a-working-network.patch
 CVE-2017-7494.patch
 CVE-2017-11103-Orpheus-Lyre-KDC-REP-service-name-val.patch
+CVE-2017-12150-v4-5.patches.metze02.txt
+CVE-2017-12151-v4-5.patches.metze02.txt
+CVE-2017-12163-all-metze01.patch.txt
