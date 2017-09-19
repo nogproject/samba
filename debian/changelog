@@ -1,3 +1,12 @@
+samba (2:4.5.12+dfsg-2) stretch; urgency=high
+
+  * This is a security release in order to address the following defects:
+    - CVE-2017-12150: Some code path don't enforce smb signing, when they should
+    - CVE-2017-12151: Keep required encryption across SMB3 dfs redirects
+    - CVE-2017-12163: Server memory information leak over SMB1
+
+ -- Mathieu Parent <sathieu@debian.org>  Mon, 25 Sep 2017 15:19:34 +0200
+
 samba (2:4.5.12+dfsg-1) stretch; urgency=medium
 
   * gbp.conf: change debian-branch to stretch
