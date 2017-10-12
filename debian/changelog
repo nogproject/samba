@@ -1,3 +1,9 @@
+samba (2:4.5.12+dfsg-2+bcpfs6) stable; urgency=high
+
+  * Rebased to Debian Samba 2:4.5.12+dfsg-2 Git commit.
+
+ -- Steffen Prohaska <prohaska@zib.de>  Thu, 12 Oct 2017 10:30:13 +0200
+
 samba (2:4.5.12+dfsg-2+bcpfs5) stable; urgency=high
 
   * Rebased to Debian Samba, git version 2:4.5.12+dfsg-1 with fake
