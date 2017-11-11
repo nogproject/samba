@@ -1,3 +1,12 @@
+samba (2:4.5.12+dfsg-2+deb9u1) stretch-security; urgency=high
+
+  * This is a security release in order to address the following defects:
+    - CVE-2017-15275: s3: smbd: Chain code can return uninitialized memory when
+      talloc buffer is grown.
+    - CVE-2017-14746: s3: smbd: Fix SMB1 use-after-free crash bug.
+
+ -- Mathieu Parent <sathieu@debian.org>  Mon, 20 Nov 2017 23:24:53 +0100
+
 samba (2:4.5.12+dfsg-2) stretch; urgency=high
 
   * This is a security release in order to address the following defects:
