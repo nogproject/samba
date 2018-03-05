@@ -1,3 +1,11 @@
+samba (2:4.5.12+dfsg-2+deb9u2) stretch-security; urgency=high
+
+  * This is a security release in order to address the following defects:
+    - CVE-2018-1050: Codenomicon crashes in spoolss server code
+    - CVE-2018-1057: Unprivileged user can change any user (and admin) password
+
+ -- Mathieu Parent <sathieu@debian.org>  Mon, 05 Mar 2018 15:25:39 +0100
+
 samba (2:4.5.12+dfsg-2+deb9u1) stretch-security; urgency=high
 
   * This is a security release in order to address the following defects:
