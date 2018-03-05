@@ -15,8 +15,9 @@ systemd-syslog.target-is-obsolete.patch
 Add-documentation-to-systemd-Unit-files.patch
 fix_kill_path_in_units.patch
 nmbd-requires-a-working-network.patch
-CVE-2017-7494.patch
-CVE-2017-11103-Orpheus-Lyre-KDC-REP-service-name-val.patch
+provision-Update-root-DNS-servers-list.patch
 CVE-2017-12150-v4-5.patches.metze02.txt
 CVE-2017-12151-v4-5.patches.metze02.txt
 CVE-2017-12163-all-metze01.patch.txt
+s3-smbd-Chain-code-can-return-uninitialized-memory-w.patch
+s3-smbd-Fix-SMB1-use-after-free-crash-bug.-CVE-2017-.patch

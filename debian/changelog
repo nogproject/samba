@@ -1,11 +1,43 @@
-samba (2:4.5.8+dfsg-2+deb9u2) stretch-security; urgency=high
+samba (2:4.5.12+dfsg-2+deb9u1) stretch-security; urgency=high
+
+  * This is a security release in order to address the following defects:
+    - CVE-2017-15275: s3: smbd: Chain code can return uninitialized memory when
+      talloc buffer is grown.
+    - CVE-2017-14746: s3: smbd: Fix SMB1 use-after-free crash bug.
+
+ -- Mathieu Parent <sathieu@debian.org>  Mon, 20 Nov 2017 23:24:53 +0100
+
+samba (2:4.5.12+dfsg-2) stretch; urgency=high
 
   * This is a security release in order to address the following defects:
     - CVE-2017-12150: Some code path don't enforce smb signing, when they should
     - CVE-2017-12151: Keep required encryption across SMB3 dfs redirects
     - CVE-2017-12163: Server memory information leak over SMB1
 
- -- Mathieu Parent <sathieu@debian.org>  Tue, 19 Sep 2017 21:56:07 +0200
+ -- Mathieu Parent <sathieu@debian.org>  Mon, 25 Sep 2017 15:19:34 +0200
+
+samba (2:4.5.12+dfsg-1) stretch; urgency=medium
+
+  * gbp.conf: change debian-branch to stretch
+  * New upstream version
+    - Remove CVE-2017-11103-Orpheus-Lyre-KDC-REP-service-name-val.patch, merged
+    - Remove CVE-2017-7494.patch, merged
+    - Fix "Non-kerberos logins fails on winbind 4.X when krb5_auth is
+      configured in PAM" (Closes: #739768)
+  * Stability fixes backported from sid:
+    - Properly quote subshell invocation in samba-common.preinst
+      (Closes: #771689)
+    - Fix typo s/DESTIDR/DESTDIR/ in d/rules
+    - sysv: Use --pidfile in addition to --exec to avoid matching daemons in
+      containers (Closes: #810794)
+    - Fix libpam-winbind.prerm to be multiarch-safe (Closes: #647430)
+    - Add missing logrotate for /var/log/samba/log.samba (Closes: #803924)
+    - Fix outdated DNS Root servers (Closes: #865406)
+    - Fix logrotate for /var/log/samba/log.samba to send SIGHUP to all processes
+      of the service (systemd only)
+    - Fix samba.logrotate (Thanks Thomas A. Reim)
+
+ -- Mathieu Parent <sathieu@debian.org>  Sat, 26 Aug 2017 17:35:49 +0200
 
 samba (2:4.5.8+dfsg-2+deb9u1) stretch-security; urgency=high
 
