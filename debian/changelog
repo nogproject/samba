@@ -1,3 +1,12 @@
+samba (2:4.5.12+dfsg-2+deb9u3) stretch-security; urgency=high
+
+  * Non-maintainer upload by the Security Team.
+  * Confidential attribute disclosure from the AD LDAP server (CVE-2018-10919)
+  * Insufficient input validation on client directory listing in libsmbclient
+    (CVE-2018-10858)
+
+ -- Salvatore Bonaccorso <carnil@debian.org>  Mon, 13 Aug 2018 22:49:33 +0200
+
 samba (2:4.5.12+dfsg-2+deb9u2) stretch-security; urgency=high
 
   * This is a security release in order to address the following defects:
