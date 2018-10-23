@@ -1,0 +1,5 @@
+#
+# rodc and vampire_dc require signed dns updates, so the test setup
+# fails, but the test does run on fl2003dc
+^samba.tests.dns.__main__.TestComplexQueries.test_cname_loop\(rodc:local\)
+^samba.tests.dns.__main__.TestComplexQueries.test_cname_loop\(vampire_dc:local\)
