@@ -601,12 +601,12 @@ static void ldapsrv_call_process_done(struct tevent_req *subreq)
 		ret = data_blob_append(call, &blob, b.data, b.length);
 		data_blob_free(&b);
 
-		talloc_set_name_const(blob.data, "Outgoing, encoded LDAP packet");
-
 		if (!ret) {
 			ldapsrv_terminate_connection(conn, "data_blob_append failed");
 			return;
 		}
+
+		talloc_set_name_const(blob.data, "Outgoing, encoded LDAP packet");
 
 		DLIST_REMOVE(call->replies, call->replies);
 	}
