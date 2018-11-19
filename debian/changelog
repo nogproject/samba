@@ -1,3 +1,13 @@
+samba (2:4.5.12+dfsg-2+deb9u4) stretch-security; urgency=high
+
+  * New upstream security release
+    - CVE-2018-14629 Unprivileged adding of CNAME record causing loop in AD
+      Internal DNS server
+    - CVE-2018-16841 Double-free in Samba AD DC KDC with PKINIT
+    - CVE-2018-16851 NULL pointer de-reference in Samba AD DC LDAP server
+
+ -- Mathieu Parent <sathieu@debian.org>  Thu, 22 Nov 2018 07:04:59 +0100
+
 samba (2:4.5.12+dfsg-2+deb9u3) stretch-security; urgency=high
 
   * Non-maintainer upload by the Security Team.
