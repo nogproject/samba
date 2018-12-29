@@ -1,3 +1,9 @@
+samba (2:4.5.16+dfsg-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Mathieu Parent <sathieu@debian.org>  Sat, 29 Dec 2018 22:18:31 +0100
+
 samba (2:4.5.12+dfsg-2+deb9u4) stretch-security; urgency=high
 
   * New upstream security release
