@@ -362,6 +362,16 @@ krb5_error_code ms_suptypes_to_ietf_enctypes(TALLOC_CTX *mem_ctx,
 int smb_krb5_get_pw_salt(krb5_context context,
 			 krb5_const_principal host_princ,
 			 krb5_data *psalt);
+int smb_krb5_salt_principal(const char *realm,
+			    const char *sAMAccountName,
+			    const char *userPrincipalName,
+			    bool is_computer,
+			    TALLOC_CTX *mem_ctx,
+			    char **_salt_principal);
+int smb_krb5_salt_principal2data(krb5_context context,
+				 const char *salt_principal,
+				 TALLOC_CTX *mem_ctx,
+				 char **_salt_data);
 
 int smb_krb5_create_key_from_string(krb5_context context,
 				    krb5_const_principal host_princ,
@@ -407,5 +417,7 @@ int cli_krb5_get_ticket(TALLOC_CTX *mem_ctx,
 			uint32_t extra_ap_opts, const char *ccname,
 			time_t *tgs_expire,
 			const char *impersonate_princ_s);
+
+#define smb_krb5_free_data_contents(a, b) kerberos_free_data_contents(a, b)
 
 #endif /* _KRB5_SAMBA_H */

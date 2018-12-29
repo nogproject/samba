@@ -138,6 +138,7 @@ struct fruit_config_data {
 	bool veto_appledouble;
 	bool posix_rename;
 	bool aapl_zero_file_id;
+	const char *model;
 
 	/*
 	 * Additional options, all enabled by default,
@@ -858,11 +859,6 @@ exit:
 	return ealen;
 }
 
-static int ad_open_meta(const char *path, int flags, mode_t mode)
-{
-	return open(path, flags, mode);
-}
-
 static int ad_open_rsrc_xattr(const char *path, int flags, mode_t mode)
 {
 #ifdef HAVE_ATTROPEN
@@ -911,33 +907,44 @@ static int ad_open_rsrc(vfs_handle_struct *handle,
 	return fd;
 }
 
+/*
+ * Here's the deal: for ADOUBLE_META we can do without an fd as we can issue
+ * path based xattr calls. For ADOUBLE_RSRC however we need a full-fledged fd
+ * for file IO on the ._ file.
+ */
 static int ad_open(vfs_handle_struct *handle,
 		   struct adouble *ad,
+		   files_struct *fsp,
 		   const char *path,
-		   adouble_type_t t,
 		   int flags,
 		   mode_t mode)
 {
 	int fd;
 
 	DBG_DEBUG("Path [%s] type [%s]\n",
-		  path, t == ADOUBLE_META ? "meta" : "rsrc");
+		  path, ad->ad_type == ADOUBLE_META ? "meta" : "rsrc");
 
-	if (t == ADOUBLE_META) {
-		fd = ad_open_meta(path, flags, mode);
-	} else {
-		fd = ad_open_rsrc(handle, path, flags, mode);
+	if (ad->ad_type == ADOUBLE_META) {
+		return 0;
 	}
 
-	if (fd != -1) {
-		ad->ad_opened = true;
-		ad->ad_fd = fd;
+	if ((fsp != NULL) && (fsp->fh != NULL) && (fsp->fh->fd != -1)) {
+		ad->ad_fd = fsp->fh->fd;
+		ad->ad_opened = false;
+		return 0;
 	}
+
+	fd = ad_open_rsrc(handle, path, flags, mode);
+	if (fd == -1) {
+		return -1;
+	}
+	ad->ad_opened = true;
+	ad->ad_fd = fd;
 
 	DBG_DEBUG("Path [%s] type [%s] fd [%d]\n",
-		  path, t == ADOUBLE_META ? "meta" : "rsrc", fd);
+		  path, ad->ad_type == ADOUBLE_META ? "meta" : "rsrc", fd);
 
-	return fd;
+	return 0;
 }
 
 static ssize_t ad_read_rsrc_xattr(struct adouble *ad,
@@ -1223,24 +1230,20 @@ static struct adouble *ad_init(TALLOC_CTX *ctx, vfs_handle_struct *handle,
 	return ad;
 }
 
-/**
- * Return AppleDouble data for a file
- *
- * @param[in] ctx      talloc context
- * @param[in] handle   vfs handle
- * @param[in] path     pathname to file or directory
- * @param[in] type     type of AppleDouble, ADOUBLE_META or ADOUBLE_RSRC
- *
- * @return             talloced struct adouble or NULL on error
- **/
-static struct adouble *ad_get(TALLOC_CTX *ctx, vfs_handle_struct *handle,
-			      const char *path, adouble_type_t type)
+static struct adouble *ad_get_internal(TALLOC_CTX *ctx,
+				       vfs_handle_struct *handle,
+				       files_struct *fsp,
+				       const char *path,
+				       adouble_type_t type)
 {
 	int rc = 0;
 	ssize_t len;
 	struct adouble *ad = NULL;
-	int fd;
 	int mode;
+
+	if (fsp != NULL) {
+		path = fsp->base_fsp->fsp_name->base_name;
+	}
 
 	DEBUG(10, ("ad_get(%s) called for %s\n",
 		   type == ADOUBLE_META ? "meta" : "rsrc", path));
@@ -1251,28 +1254,18 @@ static struct adouble *ad_get(TALLOC_CTX *ctx, vfs_handle_struct *handle,
 		goto exit;
 	}
 
-	/*
-	 * Here's the deal: for ADOUBLE_META we can do without an fd
-	 * as we can issue path based xattr calls. For ADOUBLE_RSRC
-	 * however we need a full-fledged fd for file IO on the ._
-	 * file.
-	 */
-	if (type == ADOUBLE_RSRC) {
-		/* Try rw first so we can use the fd in ad_convert() */
-		mode = O_RDWR;
+	/* Try rw first so we can use the fd in ad_convert() */
+	mode = O_RDWR;
 
-		fd = ad_open(handle, ad, path, ADOUBLE_RSRC, mode, 0);
-		if (fd == -1 && ((errno == EROFS) || (errno == EACCES))) {
-			mode = O_RDONLY;
-			fd = ad_open(handle, ad, path, ADOUBLE_RSRC, mode, 0);
-		}
-
-		if (fd == -1) {
-			DBG_DEBUG("ad_open [%s] error [%s]\n",
-				  path, strerror(errno));
-			rc = -1;
-			goto exit;
-		}
+	rc = ad_open(handle, ad, fsp, path, mode, 0);
+	if (rc == -1 && ((errno == EROFS) || (errno == EACCES))) {
+		mode = O_RDONLY;
+		rc = ad_open(handle, ad, fsp, path, mode, 0);
+	}
+	if (rc == -1) {
+		DBG_DEBUG("ad_open [%s] error [%s]\n",
+			  path, strerror(errno));
+		goto exit;
 	}
 
 	len = ad_read(ad, path);
@@ -1297,6 +1290,24 @@ exit:
  *
  * @param[in] ctx      talloc context
  * @param[in] handle   vfs handle
+ * @param[in] path     pathname to file or directory
+ * @param[in] type     type of AppleDouble, ADOUBLE_META or ADOUBLE_RSRC
+ *
+ * @return             talloced struct adouble or NULL on error
+ **/
+static struct adouble *ad_get(TALLOC_CTX *ctx,
+			      vfs_handle_struct *handle,
+			      const char *path,
+			      adouble_type_t type)
+{
+	return ad_get_internal(ctx, handle, NULL, path, type);
+}
+
+/**
+ * Return AppleDouble data for a file
+ *
+ * @param[in] ctx      talloc context
+ * @param[in] handle   vfs handle
  * @param[in] fsp      fsp to use for IO
  * @param[in] type     type of AppleDouble, ADOUBLE_META or ADOUBLE_RSRC
  *
@@ -1305,70 +1316,7 @@ exit:
 static struct adouble *ad_fget(TALLOC_CTX *ctx, vfs_handle_struct *handle,
 			       files_struct *fsp, adouble_type_t type)
 {
-	int rc = 0;
-	ssize_t len;
-	struct adouble *ad = NULL;
-	char *path = fsp->base_fsp->fsp_name->base_name;
-
-	DBG_DEBUG("ad_get(%s) path [%s]\n",
-		  type == ADOUBLE_META ? "meta" : "rsrc",
-		  fsp_str_dbg(fsp));
-
-	ad = ad_alloc(ctx, handle, type);
-	if (ad == NULL) {
-		rc = -1;
-		goto exit;
-	}
-
-	if ((fsp->fh != NULL) && (fsp->fh->fd != -1)) {
-		ad->ad_fd = fsp->fh->fd;
-	} else {
-		/*
-		 * Here's the deal: for ADOUBLE_META we can do without an fd
-		 * as we can issue path based xattr calls. For ADOUBLE_RSRC
-		 * however we need a full-fledged fd for file IO on the ._
-		 * file.
-		 */
-		int fd;
-		int mode;
-
-		if (type == ADOUBLE_RSRC) {
-			/* Try rw first so we can use the fd in ad_convert() */
-			mode = O_RDWR;
-
-			fd = ad_open(handle, ad, path, ADOUBLE_RSRC, mode, 0);
-			if (fd == -1 &&
-			    ((errno == EROFS) || (errno == EACCES)))
-			{
-				mode = O_RDONLY;
-				fd = ad_open(handle, ad, path, ADOUBLE_RSRC,
-					     mode, 0);
-			}
-
-			if (fd == -1) {
-				DBG_DEBUG("error opening AppleDouble for %s\n", path);
-				rc = -1;
-				goto exit;
-			}
-		}
-	}
-
-	len = ad_read(ad, path);
-	if (len == -1) {
-		DBG_DEBUG("error reading AppleDouble for %s\n", path);
-		rc = -1;
-		goto exit;
-	}
-
-exit:
-	DBG_DEBUG("ad_get(%s) path [%s] rc [%d]\n",
-		  type == ADOUBLE_META ? "meta" : "rsrc",
-		  fsp_str_dbg(fsp), rc);
-
-	if (rc != 0) {
-		TALLOC_FREE(ad);
-	}
-	return ad;
+	return ad_get_internal(ctx, handle, fsp, NULL, type);
 }
 
 /**
@@ -1438,11 +1386,11 @@ static int ad_fset(struct adouble *ad, files_struct *fsp)
 
 	switch (ad->ad_type) {
 	case ADOUBLE_META:
-		rc = SMB_VFS_NEXT_FSETXATTR(ad->ad_handle,
-					    fsp,
-					    AFPINFO_EA_NETATALK,
-					    ad->ad_data,
-					    AD_DATASZ_XATTR, 0);
+		rc = SMB_VFS_NEXT_SETXATTR(ad->ad_handle,
+					   fsp->fsp_name->base_name,
+					   AFPINFO_EA_NETATALK,
+					   ad->ad_data,
+					   AD_DATASZ_XATTR, 0);
 		break;
 
 	case ADOUBLE_RSRC:
@@ -1588,6 +1536,9 @@ static int init_fruit_config(vfs_handle_struct *handle)
 
 	config->readdir_attr_max_access = lp_parm_bool(
 		SNUM(handle->conn), "readdir_attr", "aapl_max_access", true);
+
+	config->model = lp_parm_const_string(
+		-1, FRUIT_PARAM_TYPE_NAME, "model", "MacSamba");
 
 	SMB_VFS_HANDLE_SET_DATA(handle, config,
 				NULL, struct fruit_config_data,
@@ -2212,7 +2163,7 @@ static NTSTATUS check_aapl(vfs_handle_struct *handle,
 	if (req_bitmap & SMB2_CRTCTX_AAPL_MODEL_INFO) {
 		ok = convert_string_talloc(req,
 					   CH_UNIX, CH_UTF16LE,
-					   "Samba", strlen("Samba"),
+					   config->model, strlen(config->model),
 					   &model, &modellen);
 		if (!ok) {
 			return NT_STATUS_UNSUCCESSFUL;
@@ -2542,6 +2493,9 @@ static NTSTATUS check_ms_nfs(vfs_handle_struct *handle,
 				struct fruit_config_data,
 				return NT_STATUS_UNSUCCESSFUL);
 
+	if (!global_fruit_config.nego_aapl) {
+		return NT_STATUS_OK;
+	}
 	if (psd->dacl == NULL || !config->unix_info_enabled) {
 		return NT_STATUS_OK;
 	}
@@ -2700,56 +2654,24 @@ static int fruit_open_meta_netatalk(vfs_handle_struct *handle,
 				    int flags,
 				    mode_t mode)
 {
-	int rc = 0;
-	struct smb_filename *smb_fname_base = NULL;
-	int baseflags;
-	int hostfd = -1;
+	int rc;
+	int fakefd = -1;
 	struct adouble *ad = NULL;
+	int fds[2];
 
 	DBG_DEBUG("Path [%s]\n", smb_fname_str_dbg(smb_fname));
 
-	/* Create an smb_filename with stream_name == NULL. */
-	smb_fname_base = synthetic_smb_fname(talloc_tos(),
-					smb_fname->base_name,
-					NULL,
-					NULL,
-					smb_fname->flags);
-
-	if (smb_fname_base == NULL) {
-		errno = ENOMEM;
-		rc = -1;
+	/*
+	 * Return a valid fd, but ensure any attempt to use it returns an error
+	 * (EPIPE). All operations on the smb_fname or the fsp will use path
+	 * based syscalls.
+	 */
+	rc = pipe(fds);
+	if (rc != 0) {
 		goto exit;
 	}
-
-	/*
-	 * We use baseflags to turn off nasty side-effects when opening the
-	 * underlying file.
-	 */
-	baseflags = flags;
-	baseflags &= ~O_TRUNC;
-	baseflags &= ~O_EXCL;
-	baseflags &= ~O_CREAT;
-
-	hostfd = SMB_VFS_NEXT_OPEN(handle, smb_fname_base, fsp,
-				   baseflags, mode);
-
-	/*
-	 * It is legit to open a stream on a directory, but the base
-	 * fd has to be read-only.
-	 */
-	if ((hostfd == -1) && (errno == EISDIR)) {
-		baseflags &= ~O_ACCMODE;
-		baseflags |= O_RDONLY;
-		hostfd = SMB_VFS_NEXT_OPEN(handle, smb_fname_base, fsp,
-					   baseflags, mode);
-	}
-
-	TALLOC_FREE(smb_fname_base);
-
-	if (hostfd == -1) {
-		rc = -1;
-		goto exit;
-	}
+	fakefd = fds[0];
+	close(fds[1]);
 
 	if (flags & (O_CREAT | O_TRUNC)) {
 		/*
@@ -2762,10 +2684,7 @@ static int fruit_open_meta_netatalk(vfs_handle_struct *handle,
 			goto exit;
 		}
 
-		fsp->fh->fd = hostfd;
-
-		rc = ad_fset(ad, fsp);
-		fsp->fh->fd = -1;
+		rc = ad_set(ad, fsp->fsp_name->base_name);
 		if (rc != 0) {
 			rc = -1;
 			goto exit;
@@ -2775,22 +2694,16 @@ static int fruit_open_meta_netatalk(vfs_handle_struct *handle,
 	}
 
 exit:
-	DEBUG(10, ("fruit_open meta rc=%d, fd=%d\n", rc, hostfd));
+	DEBUG(10, ("fruit_open meta rc=%d, fd=%d\n", rc, fakefd));
 	if (rc != 0) {
 		int saved_errno = errno;
-		if (hostfd >= 0) {
-			/*
-			 * BUGBUGBUG -- we would need to call
-			 * fd_close_posix here, but we don't have a
-			 * full fsp yet
-			 */
-			fsp->fh->fd = hostfd;
-			SMB_VFS_NEXT_CLOSE(handle, fsp);
+		if (fakefd >= 0) {
+			close(fakefd);
 		}
-		hostfd = -1;
+		fakefd = -1;
 		errno = saved_errno;
 	}
-	return hostfd;
+	return fakefd;
 }
 
 static int fruit_open_meta(vfs_handle_struct *handle,
@@ -5121,6 +5034,9 @@ static NTSTATUS fruit_fget_nt_acl(vfs_handle_struct *handle,
 	/*
 	 * Add MS NFS style ACEs with uid, gid and mode
 	 */
+	if (!global_fruit_config.nego_aapl) {
+		return NT_STATUS_OK;
+	}
 	if (!config->unix_info_enabled) {
 		return NT_STATUS_OK;
 	}
