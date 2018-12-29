@@ -16,13 +16,6 @@ Add-documentation-to-systemd-Unit-files.patch
 fix_kill_path_in_units.patch
 nmbd-requires-a-working-network.patch
 provision-Update-root-DNS-servers-list.patch
-CVE-2017-12150-v4-5.patches.metze02.txt
-CVE-2017-12151-v4-5.patches.metze02.txt
-CVE-2017-12163-all-metze01.patch.txt
-s3-smbd-Chain-code-can-return-uninitialized-memory-w.patch
-s3-smbd-Fix-SMB1-use-after-free-crash-bug.-CVE-2017-.patch
-CVE-2018-1050-11343-4.5.patch
-CVE-2018-1057-v4-5.metze01.patches.txt
 CVE-2018-10919.patch
 CVE-2018-10858-4.6.patch
 CVE-2018-14629-v4-5.patch
