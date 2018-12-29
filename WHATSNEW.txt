@@ -1,4 +1,291 @@
                    ==============================
+                   Release Notes for Samba 4.5.16
+                           March 13, 2018
+                   ==============================
+
+
+This is a security release in order to address the following defects:
+
+o  CVE-2018-1050 (Denial of Service Attack on external print server.)
+o  CVE-2018-1057 (Authenticated users can change other users' password.)
+
+
+=======
+Details
+=======
+
+o  CVE-2018-1050:
+   All versions of Samba from 4.0.0 onwards are vulnerable to a denial of
+   service attack when the RPC spoolss service is configured to be run as
+   an external daemon. Missing input sanitization checks on some of the
+   input parameters to spoolss RPC calls could cause the print spooler
+   service to crash.
+
+   There is no known vulnerability associated with this error, merely a
+   denial of service. If the RPC spoolss service is left by default as an
+   internal service, all a client can do is crash its own authenticated
+   connection.
+
+o  CVE-2018-1057:
+   On a Samba 4 AD DC the LDAP server in all versions of Samba from
+   4.0.0 onwards incorrectly validates permissions to modify passwords
+   over LDAP allowing authenticated users to change any other users'
+   passwords, including administrative users.
+
+   Possible workarounds are described at a dedicated page in the Samba wiki:
+   https://wiki.samba.org/index.php/CVE-2018-1057
+
+
+Changes since 4.5.15:
+---------------------
+
+o  Jeremy Allison <jra@samba.org>
+   * BUG 11343: CVE-2018-1050: Codenomicon crashes in spoolss server code.
+
+o  Ralph Boehme <slow@samba.org>
+   * BUG 13272: CVE-2018-1057: Unprivileged user can change any user (and admin)
+     password.
+
+o  Stefan Metzmacher <metze@samba.org>
+   * BUG 13272: CVE-2018-1057: Unprivileged user can change any user (and admin)
+     password.
+
+
+#######################################
+Reporting bugs & Development Discussion
+#######################################
+
+Please discuss this release on the samba-technical mailing list or by
+joining the #samba-technical IRC channel on irc.freenode.net.
+
+If you do report problems then please try to send high quality
+feedback. If you don't provide vital information to help us track down
+the problem then you will probably be ignored.  All bug reports should
+be filed under the "Samba 4.1 and newer" product in the project's Bugzilla
+database (https://bugzilla.samba.org/).
+
+
+======================================================================
+== Our Code, Our Bugs, Our Responsibility.
+== The Samba Team
+======================================================================
+
+
+Release notes for older releases follow:
+----------------------------------------
+
+                   ==============================
+                   Release Notes for Samba 4.5.15
+                          November 21, 2017
+                   ==============================
+
+
+This is a security release in order to address the following defects:
+
+o  CVE-2017-14746 (Use-after-free vulnerability.)
+o  CVE-2017-15275 (Server heap memory information leak.)
+
+
+=======
+Details
+=======
+
+o  CVE-2017-14746:
+   All versions of Samba from 4.0.0 onwards are vulnerable to a use after
+   free vulnerability, where a malicious SMB1 request can be used to
+   control the contents of heap memory via a deallocated heap pointer. It
+   is possible this may be used to compromise the SMB server.
+
+o  CVE-2017-15275:
+   All versions of Samba from 3.6.0 onwards are vulnerable to a heap
+   memory information leak, where server allocated heap memory may be
+   returned to the client without being cleared.
+
+   There is no known vulnerability associated with this error, but
+   uncleared heap memory may contain previously used data that may help
+   an attacker compromise the server via other methods. Uncleared heap
+   memory may potentially contain password hashes or other high-value
+   data.
+
+For more details and workarounds, please see the security advisories:
+
+   o https://www.samba.org/samba/security/CVE-2017-14746.html
+   o https://www.samba.org/samba/security/CVE-2017-15275.html
+
+
+Changes since 4.5.14:
+---------------------
+
+o  Jeremy Allison <jra@samba.org>
+   * BUG 13041: CVE-2017-14746: s3: smbd: Fix SMB1 use-after-free crash bug.
+   * BUG 13077: CVE-2017-15275: s3: smbd: Chain code can return uninitialized
+     memory when talloc buffer is grown.
+
+
+#######################################
+Reporting bugs & Development Discussion
+#######################################
+
+Please discuss this release on the samba-technical mailing list or by
+joining the #samba-technical IRC channel on irc.freenode.net.
+
+If you do report problems then please try to send high quality
+feedback. If you don't provide vital information to help us track down
+the problem then you will probably be ignored.  All bug reports should
+be filed under the "Samba 4.1 and newer" product in the project's Bugzilla
+database (https://bugzilla.samba.org/).
+
+
+======================================================================
+== Our Code, Our Bugs, Our Responsibility.
+== The Samba Team
+======================================================================
+
+
+----------------------------------------------------------------------
+
+
+                   ==============================
+                   Release Notes for Samba 4.5.14
+                         September 20, 2017
+                   ==============================
+
+
+This is a security release in order to address the following defects:
+
+o  CVE-2017-12150 (SMB1/2/3 connections may not require signing where they
+   should)
+o  CVE-2017-12151 (SMB3 connections don't keep encryption across DFS redirects)
+o  CVE-2017-12163 (Server memory information leak over SMB1)
+
+
+=======
+Details
+=======
+
+o  CVE-2017-12150:
+   A man in the middle attack may hijack client connections.
+
+o  CVE-2017-12151:
+   A man in the middle attack can read and may alter confidential
+   documents transferred via a client connection, which are reached
+   via DFS redirect when the original connection used SMB3.
+
+o  CVE-2017-12163:
+   Client with write access to a share can cause server memory contents to be
+   written into a file or printer.
+
+For more details and workarounds, please see the security advisories:
+
+   o https://www.samba.org/samba/security/CVE-2017-12150.html
+   o https://www.samba.org/samba/security/CVE-2017-12151.html
+   o https://www.samba.org/samba/security/CVE-2017-12163.html
+
+
+Changes since 4.5.13:
+---------------------
+
+o  Jeremy Allison <jra@samba.org>
+   * BUG 13020: CVE-2017-12163: s3:smbd: Prevent client short SMB1 write from
+     writing server memory to file.
+
+o  Stefan Metzmacher <metze@samba.org>
+   * BUG 12996: CVE-2017-12151: Keep required encryption across SMB3 dfs
+     redirects.
+   * BUG 12997: CVE-2017-12150: Some code path don't enforce smb signing
+     when they should.
+
+
+#######################################
+Reporting bugs & Development Discussion
+#######################################
+
+Please discuss this release on the samba-technical mailing list or by
+joining the #samba-technical IRC channel on irc.freenode.net.
+
+If you do report problems then please try to send high quality
+feedback. If you don't provide vital information to help us track down
+the problem then you will probably be ignored.  All bug reports should
+be filed under the "Samba 4.1 and newer" product in the project's Bugzilla
+database (https://bugzilla.samba.org/).
+
+
+======================================================================
+== Our Code, Our Bugs, Our Responsibility.
+== The Samba Team
+======================================================================
+
+
+----------------------------------------------------------------------
+
+
+                   ==============================
+                   Release Notes for Samba 4.5.13
+                           August 31, 2017
+                   ==============================
+
+
+This is the latest stable release of the Samba 4.5 release series.
+
+
+Changes since 4.5.12:
+---------------------
+
+o  Jeremy Allison <jra@samba.org>
+   * BUG 12836: s3: smbd: Fix a read after free if a chained SMB1 call goes
+     async.
+   * BUG 12899: 'smbclient setmode' no longer works to clear attribute bits due
+     to dialect upgrade.
+   * BUG 12913: SMBC_setatr() initially uses an SMB1 call before falling back.
+
+o  Ralph Boehme <slow@samba.org>
+   * BUG 12791: Fix kernel oplock issues with named streams.
+   * BUG 12897: vfs_fruit: Don't use MS NFS ACEs with Windows clients.
+   * BUG 12910: s3/notifyd: Ensure notifyd doesn't return from
+     smbd_notifyd_init.
+   * BUG 12944: vfs_gpfs: handle EACCES when fetching DOS attributes from xattr.
+   * BUG 12885: Let non_widelink_open() chdir() to directories directly.
+
+o  Günther Deschner <gd@samba.org>
+   * BUG 12840: vfs_fruit: Add fruit:model = <modelname> parametric option.
+
+o  David Disseldorp <ddiss@samba.org>
+   * BUG 12911: vfs_ceph: fix cephwrap_chdir().
+
+o  Thomas Jarosch <thomas.jarosch@intra2net.com>
+   * BUG 12927: s3: libsmb: Fix use-after-free when accessing pointer *p.
+
+o  Stefan Metzmacher <metze@samba.org>
+   * BUG 12782: winbindd changes the local password and gets
+     NT_STATUS_WRONG_PASSWORD for the remote change.
+   * BUG 12890: s3:smbd: consistently use talloc_tos() memory for
+     rpc_pipe_open_interface().
+
+
+#######################################
+Reporting bugs & Development Discussion
+#######################################
+
+Please discuss this release on the samba-technical mailing list or by
+joining the #samba-technical IRC channel on irc.freenode.net.
+
+If you do report problems then please try to send high quality
+feedback. If you don't provide vital information to help us track down
+the problem then you will probably be ignored.  All bug reports should
+be filed under the "Samba 4.1 and newer" product in the project's Bugzilla
+database (https://bugzilla.samba.org/).
+
+
+======================================================================
+== Our Code, Our Bugs, Our Responsibility.
+== The Samba Team
+======================================================================
+
+
+----------------------------------------------------------------------
+
+
+                   ==============================
                    Release Notes for Samba 4.5.12
                             July 12, 2017
                    ==============================
@@ -48,8 +335,8 @@ database (https://bugzilla.samba.org/).
 ======================================================================
 
 
-Release notes for older releases follow:
-----------------------------------------
+----------------------------------------------------------------------
+
 
                    ==============================
                    Release Notes for Samba 4.5.11
