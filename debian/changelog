@@ -1,8 +1,17 @@
 samba (2:4.5.16+dfsg-1) UNRELEASED; urgency=medium
 
-  * New upstream release
+  * New upstream release (latest 4.5.x)
+    - Drop merged patches
+  * Fix CVE-2018-14629 regression when there're more than 20 records on a non
+    CNAME record.
+  * Fix rmdir on non-empty samba directory (Closes: #915248)
+  * Ignore nmbd start errors when there is no non-loopback interface
+    (Closes: #893762)
+  * Ignore nmbd start errors when there is  no local IPv4 non-loopback interface
+    (Closes: #859526)
+  * s3:ntlm_auth: fix memory leak in manage_gensec_request() (Closes: #919611)
 
- -- Mathieu Parent <sathieu@debian.org>  Sat, 29 Dec 2018 22:18:31 +0100
+ -- Mathieu Parent <sathieu@debian.org>  Fri, 18 Jan 2019 07:35:15 +0100
 
 samba (2:4.5.12+dfsg-2+deb9u4) stretch-security; urgency=high
 
