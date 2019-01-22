@@ -1,0 +1,14 @@
+#include: https://salsa.debian.org/salsa-ci-team/pipeline/raw/master/salsa-ci.yml
+include: https://salsa.debian.org/sathieu/pipeline/raw/master/salsa-ci.yml
+
+build:
+    extends: .build-stretch
+
+lintian:
+    extends: .test-lintian-stretch
+
+autopkgtest:
+    extends: .test-autopkgtest-stretch
+
+piuparts:
+    extends: .test-piuparts-stretch
