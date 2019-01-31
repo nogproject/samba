@@ -1,4 +1,4 @@
-samba (2:4.5.16+dfsg-1) UNRELEASED; urgency=medium
+samba (2:4.5.16+dfsg-1) stretch; urgency=medium
 
   * New upstream release (latest 4.5.x)
     - Drop merged patches
@@ -10,8 +10,9 @@ samba (2:4.5.16+dfsg-1) UNRELEASED; urgency=medium
   * Ignore nmbd start errors when there is  no local IPv4 non-loopback interface
     (Closes: #859526)
   * s3:ntlm_auth: fix memory leak in manage_gensec_request() (Closes: #919611)
+  * Add debian/gitlab-ci.yml
 
- -- Mathieu Parent <sathieu@debian.org>  Fri, 18 Jan 2019 07:35:15 +0100
+ -- Mathieu Parent <sathieu@debian.org>  Thu, 31 Jan 2019 23:12:28 +0100
 
 samba (2:4.5.12+dfsg-2+deb9u4) stretch-security; urgency=high
 
