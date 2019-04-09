@@ -1,3 +1,9 @@
+samba (2:4.5.16+dfsg-1+deb9u1+bcpfs8) stable; urgency=high
+
+  * Rebased to Debian Samba 2:4.5.16+dfsg-1+deb9u1 Git commit.
+
+ -- Steffen Prohaska <prohaska@zib.de>  Tue, 09 Apr 2019 11:44:23 +0200
+
 samba (2:4.5.16+dfsg-1+bcpfs7) stable; urgency=high
 
   * Rebased to Debian Samba 2:4.5.16+dfsg-1 Git commit.
